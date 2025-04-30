@@ -2,10 +2,21 @@ import SwiftUI
 import UIKit
 
 // Renk Paleti Tanımları (İleride Assets veya struct içinde toplanabilir)
-//let calmingBlue = Color(red: 100/255, green: 149/255, blue: 237/255) // Cornflower Blue (Sakin Mavi)
-//let darkText = Color(white: 0.2) // Koyu Gri Metin
-//let lightGrayBackground = Color(white: 0.96)
-//let secondaryText = Color.gray
+let corporateBlue = Color(red: 0/255, green: 119/255, blue: 181/255) 
+let darkText = Color(white: 0.2) // Koyu Gri Metin
+let lightGrayBackground = Color(white: 0.96)
+let secondaryText = Color.gray
+
+// Buton basılma animasyonu için özel stil
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            // Basıldığında %5 küçült, bırakıldığında normale dön
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0) 
+            // Animasyonu yumuşat
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed) 
+    }
+}
 
 struct OnboardingView: View {
     // Onboarding durumunu güncellemek için AppStorage kullanıyoruz
@@ -50,7 +61,7 @@ struct OnboardingView: View {
                 .tabViewStyle(.page(indexDisplayMode: .always))
                 .frame(height: geometry.size.height * 0.75) 
                 .onAppear {
-                    UIPageControl.appearance().currentPageIndicatorTintColor = UIColor.calmingBlue
+                    UIPageControl.appearance().currentPageIndicatorTintColor = UIColor(corporateBlue)
                     UIPageControl.appearance().pageIndicatorTintColor = UIColor.lightGray
                  }
 
@@ -68,10 +79,14 @@ struct OnboardingView: View {
                     }
                 }, label: {
                     Text("onboarding_continue_button", tableName: stringsTableName)
-                        .frame(maxWidth: .infinity) 
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(corporateBlue)
+                        .cornerRadius(10)
                 })
-                .buttonStyle(.borderedProminent)
-                .tint(Color.calmingBlue) 
+                .buttonStyle(ScaleButtonStyle())
                 .controlSize(.large) 
                 .padding(.horizontal, 30) 
                 .padding(.bottom, max(geometry.safeAreaInsets.bottom, 20)) 
