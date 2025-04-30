@@ -1,0 +1,19 @@
+/* 
+  Localizable.strings
+  bookSummary
+
+  Created by [Your Name] on [Date].
+*/
+
+// Onboarding Screen
+"onboarding_skip_button" = "Skip";
+"onboarding_continue_button" = "Continue";
+
+"onboarding_page1_title" = "Welcome!";
+"onboarding_page1_description" = "Discover a world full of amazing audiobooks.";
+
+"onboarding_page2_title" = "Listen Anywhere";
+"onboarding_page2_description" = "Download your books and keep listening offline.";
+
+"onboarding_page3_title" = "Vast Library";
+"onboarding_page3_description" = "Find your favorites among thousands of titles and start right away."; 
