@@ -13,9 +13,11 @@ struct OnboardingPageView: View {
             // Verileri ViewModel üzerinden al
             Image(viewModel.currentPageData.imageName)
                 .resizable()
+                // Farklı cihazlarda kırpmayı önlemek için .scaledToFit() kullan
+                .scaledToFit()
                 .frame(width: screenWidth, height: screenHeight * 0.5)
-                .scaledToFill()
-                .clipped()
+                // .scaledToFill()
+                .clipped() // scaledToFit ile clipped genellikle gereksizdir, ama kalabilir
 
             VStack(spacing: 15) {
                 // Verileri ViewModel üzerinden al ve doğru tabloyu belirt
@@ -29,7 +31,8 @@ struct OnboardingPageView: View {
                     .font(.body)
                     .foregroundColor(Theme.secondaryText)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
+                    // Sabit padding yerine varsayılan adaptive padding kullan
+                    .padding(.horizontal)
             }
 
             Spacer()

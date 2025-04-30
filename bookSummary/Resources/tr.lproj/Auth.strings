@@ -1,0 +1,20 @@
+/* Auth.strings (Turkish) */
+
+/* --- Signup View --- */
+"signup_title" = "Kaydol";
+"signup_login_button" = "Giriş Yap";
+"signup_name_placeholder" = "Ad Soyad";
+"signup_email_placeholder" = "E-posta Adresi";
+"signup_password_placeholder" = "Şifre (en az 6 karakter)";
+"signup_button" = "Kaydol";
+
+/* --- Validation Errors --- */
+"error_name_empty" = "Ad alanı boş bırakılamaz.";
+"error_email_empty" = "E-posta alanı boş bırakılamaz.";
+"error_email_invalid" = "Geçerli bir e-posta adresi girin.";
+"error_password_empty" = "Şifre alanı boş bırakılamaz.";
+"error_password_short" = "Şifre en az 6 karakter olmalıdır.";
+
+/* --- Generic Errors --- */
+"error_profile_update_failed" = "Kayıt başarılı ancak profil güncellenemedi.";
+"error_generic_signup_failed" = "Kullanıcı oluşturulamadı. Lütfen tekrar deneyin."; // Daha genel bir hata 

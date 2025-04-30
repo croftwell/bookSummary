@@ -1,0 +1,20 @@
+/* Auth.strings (English) */
+
+/* --- Signup View --- */
+"signup_title" = "Sign Up";
+"signup_login_button" = "Log In";
+"signup_name_placeholder" = "Full Name";
+"signup_email_placeholder" = "Email Address";
+"signup_password_placeholder" = "Password (at least 6 characters)";
+"signup_button" = "Sign Up";
+
+/* --- Validation Errors --- */
+"error_name_empty" = "Name field cannot be empty.";
+"error_email_empty" = "Email field cannot be empty.";
+"error_email_invalid" = "Please enter a valid email address.";
+"error_password_empty" = "Password field cannot be empty.";
+"error_password_short" = "Password must be at least 6 characters.";
+
+/* --- Generic Errors --- */
+"error_profile_update_failed" = "Signup successful, but profile update failed.";
+"error_generic_signup_failed" = "Could not create user. Please try again."; // More generic error 

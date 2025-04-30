@@ -1,4 +1,4 @@
-/* 
+/*
   Localizable.strings
   bookSummary
 
@@ -8,6 +8,7 @@
 // Onboarding Screen
 "onboarding_skip_button" = "Atla";
 "onboarding_continue_button" = "Devam Et";
+"onboarding_start_button" = "Başla"; // <--- BU SATIRI EKLEYİN
 
 "onboarding_page1_title" = "Hoş Geldiniz!";
 "onboarding_page1_description" = "Harika sesli kitaplarla dolu dünyamızı keşfedin.";
@@ -16,4 +17,4 @@
 "onboarding_page2_description" = "Kitaplarınızı indirin ve çevrimdışı olarak dinlemeye devam edin.";
 
 "onboarding_page3_title" = "Geniş Kütüphane";
-"onboarding_page3_description" = "Binlerce başlık arasından favorilerinizi bulun ve hemen başlayın."; 
+"onboarding_page3_description" = "Binlerce başlık arasından favorilerinizi bulun ve hemen başlayın.";

@@ -44,7 +44,10 @@ struct OnboardingContainerView: View {
                     Button(action: { 
                         viewModel.continueButtonTapped()
                     }) {
-                        Text(viewModel.continueButtonText)
+                        // Yerelleştirilmiş anahtarı ve tablo adını kullan
+                        Text(LocalizedStringKey(viewModel.buttonTextKey), tableName: "Onboarding")
+                            // Dinamik tip için font stili ekle
+                            .font(.headline) 
                             .fontWeight(.semibold)
                             .frame(maxWidth: .infinity)
                             .padding()
@@ -52,7 +55,8 @@ struct OnboardingContainerView: View {
                             .background(Theme.linkedinBlue)
                             .cornerRadius(10)
                     }
-                    .padding(.horizontal, 20)
+                    // Sabit padding yerine varsayılan adaptive padding kullan
+                    .padding(.horizontal)
                 }
                 // VStack'i (Noktalar + Buton) ekranın altından yukarı konumlandır
                 .padding(.bottom, 80) // Alt kenardan boşluğu artırarak grubu yukarı taşı

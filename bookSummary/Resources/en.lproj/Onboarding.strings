@@ -1,4 +1,4 @@
-/* 
+/*
   Localizable.strings
   bookSummary
 
@@ -8,6 +8,7 @@
 // Onboarding Screen
 "onboarding_skip_button" = "Skip";
 "onboarding_continue_button" = "Continue";
+"onboarding_start_button" = "Start"; // <--- BU SATIRI EKLEYİN
 
 "onboarding_page1_title" = "Welcome!";
 "onboarding_page1_description" = "Discover a world full of amazing audiobooks.";
@@ -16,4 +17,4 @@
 "onboarding_page2_description" = "Download your books and keep listening offline.";
 
 "onboarding_page3_title" = "Vast Library";
-"onboarding_page3_description" = "Find your favorites among thousands of titles and start right away."; 
+"onboarding_page3_description" = "Find your favorites among thousands of titles and start right away.";

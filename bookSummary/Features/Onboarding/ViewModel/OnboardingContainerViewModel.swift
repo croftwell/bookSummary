@@ -16,12 +16,12 @@ class OnboardingContainerViewModel: ObservableObject {
     // Haptic feedback için yardımcı
     private let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
     
-    // Buton metnini dinamik olarak ayarlayabiliriz (örneğin son sayfada "Başla" gibi)
-    var continueButtonText: String {
+    // Buton için yerelleştirme anahtarını döndürür
+    var buttonTextKey: String {
         if currentPageIndex == pages.count - 1 {
-            return "Başla" // Son sayfa
+            return "onboarding_start_button" // Son sayfa için anahtar
         } else {
-            return "Devam Et"
+            return "onboarding_continue_button" // Diğer sayfalar için anahtar
         }
     }
     
