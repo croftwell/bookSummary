@@ -1,6 +1,6 @@
 import Foundation
 import Combine
-import FirebaseAuth // Firebase Auth import edildi
+import FirebaseAuth
 import SwiftUI
 
 class SignupViewModel: ObservableObject {
@@ -32,13 +32,24 @@ class SignupViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var didCompleteSignup = false // Kayıt başarılı olursa bunu true yap
     
-    // Formun format/uzunluk açısından geçerliliği
-    var isFormValid: Bool {
-        isNameValid && isEmailValid && isPasswordValid
+    // LoginViewModel ile iletişim için (başarılı kayıtta çağrılacak)
+    private weak var loginViewModel: LoginViewModel?
+    
+    // ViewModel'i inject etmek için init
+    init(loginViewModel: LoginViewModel?) {
+        self.loginViewModel = loginViewModel
     }
     
-    // init() ve setupValidationBindings kaldırıldı (Anlık doğrulama yok)
-
+    // Formun format/uzunluk açısından geçerliliği
+    var isFormValid: Bool {
+        // Bu kontroller artık signUpWithEmail içinde yapılıyor,
+        // ama hızlı kontrol için kalabilir.
+        validateName(name)
+        validateEmail(email)
+        validatePassword(password)
+        return isNameValid && isEmailValid && isPasswordValid
+    }
+    
     // Doğrulama Fonksiyonları (Hata mesajları anahtar olarak ayarlanacak)
     private func validateName(_ name: String) {
         if name.isEmpty {
@@ -78,79 +89,110 @@ class SignupViewModel: ObservableObject {
     }
     
     private func validateAllFields() {
-        print("validateAllFields çağrıldı") // Debug
         validateName(name)
         validateEmail(email)
         validatePassword(password)
-        print("Doğrulama sonrası: isNameValid=\(isNameValid), isEmailValid=\(isEmailValid), isPasswordValid=\(isPasswordValid)") // Debug
     }
 
     func signUpWithEmail() {
-        print("signUpWithEmail çağrıldı")
+        didAttemptSignup = true 
+        validateAllFields()
         
-        // 1. Kaydolma denemesini işaretle ve tüm alanları doğrula
-        self.didAttemptSignup = true 
-        validateAllFields() // Tüm kontrolleri (boşluk, format, uzunluk) yapar
-        
-        // 2. Genel geçerliliği kontrol et
-        // 'isFormatValid' adını 'isFormValid' olarak geri değiştirelim, daha anlamlı.
-        print("guard kontrolü öncesi: isFormValid=\(isFormValid)")
-        guard isFormValid else {
-            print("Form geçersiz, guard bloğuna girildi.")
-            // İlk GEÇERSİZ alana odaklan (boş veya format hatası)
+        guard isNameValid && isEmailValid && isPasswordValid else {
+            // İlk geçersiz alana odaklan
             if !isNameValid { fieldToFocus = SignupView.Field.name }
             else if !isEmailValid { fieldToFocus = SignupView.Field.email }
             else if !isPasswordValid { fieldToFocus = SignupView.Field.password }
-            print("Geçersiz alan bulundu, odaklanılıyor: \(fieldToFocus?.description ?? "yok")")
             return 
         }
         
-        // 3. Form Geçerli -> Firebase
-        print("Form geçerli, Firebase'e gönderiliyor...")
         isLoading = true
         genericErrorMessage = nil
         
         Auth.auth().createUser(withEmail: email, password: password) { [weak self] authResult, error in
             guard let self = self else { return }
             
+            // Hata varsa işle
             if let error = error {
-                DispatchQueue.main.async {
-                    self.isLoading = false
-                    // Firebase hatasını olduğu gibi gösterelim
-                    self.genericErrorMessage = error.localizedDescription
-                }
+                self.handleAuthError(error)
                 return
             }
             
+            // Kullanıcı yoksa (beklenmedik durum)
             guard let user = authResult?.user else {
                  DispatchQueue.main.async {
                     self.isLoading = false
-                    // Anahtarı kullanalım
                     self.genericErrorMessage = "error_generic_signup_failed"
                  }
                  return
             }
             
-            let changeRequest = user.createProfileChangeRequest()
-            changeRequest.displayName = self.name
-            changeRequest.commitChanges { [weak self] error in
-                DispatchQueue.main.async {
-                    self?.isLoading = false
-                    if let _ = error { // Hatayı doğrudan göstermek yerine anahtar kullanalım
-                        self?.genericErrorMessage = "error_profile_update_failed"
-                        self?.didCompleteSignup = true 
-                    } else {
-                        print("Firebase kaydı ve profil güncelleme başarılı: \(user.uid)")
-                        self?.didCompleteSignup = true
-                    }
+            // Kullanıcı oluşturuldu, profilini güncelle
+            self.updateUserProfile(user: user)
+        }
+    }
+    
+    // Kullanıcı profilini güncelle (isim)
+    private func updateUserProfile(user: User) {
+        let changeRequest = user.createProfileChangeRequest()
+        changeRequest.displayName = self.name
+        changeRequest.commitChanges { [weak self] error in
+            // Profil güncelleme hatası olsa bile kaydı başarılı sayabiliriz.
+            // LoginViewModel'i haberdar et.
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                if let error = error {
+                    print("Profil güncelleme hatası: \(error.localizedDescription)")
+                    // Belki kullanıcıya bilgi verilebilir ama akış devam etmeli
+                    // self?.genericErrorMessage = "error_profile_update_failed"
                 }
+                print("Firebase kaydı ve profil güncelleme başarılı: \(user.uid)")
+                self?.didCompleteSignup = true // View'ın kapatılması için state
+                self?.loginViewModel?.requestCompleteAuthentication() // Ana akışı devam ettir
             }
         }
     }
     
-    // Odaklanma isteğini sıfırla (View tarafından çağrılacak)
+    // Firebase Hata İşleme
+    private func handleAuthError(_ error: Error) {
+        DispatchQueue.main.async {
+            self.isLoading = false
+            // Hata kodunu almak için modern yöntem
+            guard let authError = error as? AuthErrorCode else {
+                // Firebase dışı veya cast edilemeyen hata
+                self.genericErrorMessage = "error_generic_auth_failed"
+                print("Bilinmeyen Auth Hatası: \(error.localizedDescription)")
+                return
+            }
+            
+            // Artık authError.code enum'unu kullanabiliriz
+            switch authError.code {
+            case .emailAlreadyInUse:
+                self.genericErrorMessage = "error_email_already_in_use"
+                self.isEmailValid = false // Email alanını geçersiz işaretle
+                self.fieldToFocus = SignupView.Field.email // Email alanına odaklan
+            case .invalidEmail:
+                self.genericErrorMessage = "error_email_invalid"
+                self.isEmailValid = false
+                self.fieldToFocus = SignupView.Field.email
+            case .weakPassword:
+                self.genericErrorMessage = "error_weak_password"
+                self.isPasswordValid = false // Şifre alanını geçersiz işaretle
+                self.fieldToFocus = SignupView.Field.password // Şifre alanına odaklan
+            case .networkError:
+                self.genericErrorMessage = "error_network_error"
+            default:
+                self.genericErrorMessage = "error_generic_auth_failed"
+            }
+            // Hata mesajını alan mesajına da yansıtabiliriz (opsiyonel)
+            // if !self.isEmailValid { self.emailErrorMessage = self.genericErrorMessage }
+            // if !self.isPasswordValid { self.passwordErrorMessage = self.genericErrorMessage }
+            print("Firebase Auth Hatası: \(error.localizedDescription)")
+        }
+    }
+    
+    // Odaklanma isteğini sıfırla (Bu kalabilir)
     func resetFocusRequest() {
-        // Küçük bir gecikme ile sıfırlama, onChange'in tekrar tetiklenmesini önler
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.fieldToFocus = nil
         }

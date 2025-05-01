@@ -42,21 +42,19 @@ struct LoginView: View {
             }
             .padding()
             .navigationBarHidden(true)
-            // Sheet sunumu ViewModel'deki state'e bağlanacak
-            .sheet(isPresented: $viewModel.isPresentingSignupSheet) {
-                SignupView()
+            // Eski sheet modifier'ları kaldırıldı
+            // .sheet(isPresented: $viewModel.isPresentingSignupSheet) { ... }
+            // .sheet(isPresented: $viewModel.isPresentingEmailLoginSheet) { ... }
+            // .sheet(isPresented: $viewModel.isPresentingForgotPasswordSheet) { ... }
+            
+            // Yeni tek sheet modifier
+            .sheet(isPresented: Binding<Bool>( // currentSheetMode != .none olduğunda göster
+                get: { viewModel.currentSheetMode != .none },
+                set: { if !$0 { viewModel.dismissSheet() } } // Kapatıldığında modu .none yap
+            )) {
+                // AuthenticationSheetView'ı viewModel ile sun
+                AuthenticationSheetView(loginViewModel: viewModel)
             }
-            // Email Login Sheet'i ekle
-            .sheet(isPresented: $viewModel.isPresentingEmailLoginSheet) {
-                // TODO: EmailLoginView oluşturulunca değiştir
-                Text("Email Login Formu Buraya Gelecek") 
-            }
-            // Forgot Password Sheet'i ekle
-            .sheet(isPresented: $viewModel.isPresentingForgotPasswordSheet) {
-                // TODO: ForgotPasswordView oluşturulunca değiştir
-                Text("Şifremi Unuttum Formu Buraya Gelecek")
-            }
-            // TODO: Diğer sheet'ler için de benzer şekilde ekle
         }
     }
 }

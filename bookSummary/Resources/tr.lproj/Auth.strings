@@ -17,4 +17,19 @@
 
 /* --- Generic Errors --- */
 "error_profile_update_failed" = "Kayıt başarılı ancak profil güncellenemedi.";
-"error_generic_signup_failed" = "Kullanıcı oluşturulamadı. Lütfen tekrar deneyin."; // Daha genel bir hata 
+"error_generic_signup_failed" = "Kullanıcı oluşturulamadı. Lütfen tekrar deneyin."; // Daha genel bir hata
+
+/* --- Login View --- */
+"login_title" = "Giriş Yap";
+"login_signup_button" = "Kaydol";
+"login_email_placeholder" = "E-posta Adresi";
+"login_password_placeholder" = "Şifre";
+
+/* --- Firebase Auth Errors --- */
+"error_email_already_in_use" = "Bu e-posta adresi zaten kullanımda.";
+"error_weak_password" = "Şifre zayıf. Lütfen daha güçlü bir şifre seçin.";
+"error_wrong_password" = "Girilen şifre yanlış.";
+"error_user_not_found" = "Bu e-posta adresi ile kayıtlı kullanıcı bulunamadı.";
+"error_network_error" = "Ağ hatası. Lütfen internet bağlantınızı kontrol edin.";
+"error_generic_login_failed" = "Giriş yapılamadı. Lütfen bilgilerinizi kontrol edip tekrar deneyin.";
+"error_generic_auth_failed" = "Bir kimlik doğrulama hatası oluştu. Lütfen tekrar deneyin."; // Daha genel 
