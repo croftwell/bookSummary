@@ -24,6 +24,7 @@
 "login_signup_button" = "Kaydol";
 "login_email_placeholder" = "E-posta Adresi";
 "login_password_placeholder" = "Şifre";
+"login_button" = "Giriş Yap";
 
 /* --- Firebase Auth Errors --- */
 "error_email_already_in_use" = "Bu e-posta adresi zaten kullanımda.";

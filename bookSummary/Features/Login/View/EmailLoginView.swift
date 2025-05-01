@@ -79,10 +79,12 @@ struct EmailLoginView: View {
                     keyboardType: .emailAddress,
                     textContentType: .emailAddress,
                     autocapitalization: .none,
-                    focus: $focusedLoginField, // .constant(false), //.email
+                    submitLabel: .next, 
+                    onSubmitAction: { focusedLoginField = .password },
+                    focus: $focusedLoginField,
                     fieldIdentifier: .email,
                     isValid: viewModel.isEmailValid,
-                    didAttemptSignup: viewModel.didAttemptLogin // didAttemptLogin'i Signup parametresine geçiyoruz
+                    didAttemptSignup: viewModel.didAttemptLogin
                 ) { 
                     TextField(String(localized: "login_email_placeholder", table: "Auth"), text: $viewModel.email)
                 }
@@ -97,8 +99,10 @@ struct EmailLoginView: View {
                     placeholder: String(localized: "login_password_placeholder", table: "Auth"),
                     text: $viewModel.password,
                     isSecure: true,
-                    isPasswordVisible: $isPasswordVisible, // Binding ekle
-                    textContentType: .password, // .password olarak değiştirildi
+                    isPasswordVisible: $isPasswordVisible,
+                    textContentType: .password,
+                    submitLabel: .done, 
+                    onSubmitAction: { viewModel.login() },
                     focus: $focusedLoginField,
                     fieldIdentifier: .password,
                     isValid: viewModel.isPasswordValid,
@@ -129,7 +133,7 @@ struct EmailLoginView: View {
                     if viewModel.isLoggingIn {
                         ProgressView().frame(maxWidth: .infinity)
                     } else {
-                        Text("Giriş Yap").frame(maxWidth: .infinity) // TODO: Lokalize et ("login_button")
+                        Text(LocalizedStringKey("login_button"), tableName: "Auth").frame(maxWidth: .infinity) // Lokalize edildi
                     }
                 }
                 .buttonStyle(PrimaryButtonStyle())
@@ -148,7 +152,8 @@ struct EmailLoginView: View {
         .onTapGesture {
             focusedLoginField = nil // Odak kaybetme
         }
-        // ViewModel'den gelen odaklanma isteğini dinle
+        // Klavye açıldığında görünümün yeniden boyutlanmasını engelle
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .onChange(of: viewModel.fieldToFocus) { newFocusField in
             if let field = newFocusField {
                 focusedLoginField = field
@@ -160,7 +165,8 @@ struct EmailLoginView: View {
 
 #Preview { 
     // Preview için geçici bir LoginViewModel oluşturup EmailLoginViewModel'e geçirelim
-    let loginVM = LoginViewModel()
-    let emailLoginVM = EmailLoginViewModel(loginViewModel: loginVM)
+    // let loginVM = LoginViewModel() // Artık doğrudan LoginViewModel'e gerek yok
+    // let emailLoginVM = EmailLoginViewModel(loginViewModel: loginVM) // Eski init
+    let emailLoginVM = EmailLoginViewModel(onAuthenticationSuccess: nil) // Yeni init (Preview'da başarı action'ı nil olabilir)
     return EmailLoginView(viewModel: emailLoginVM, onSignupTapped: {}, onCloseTapped: {}) 
 } 

@@ -65,6 +65,8 @@ struct SignupView: View {
                     isSecure: false,
                     isPasswordVisible: .constant(false),
                     textContentType: .name,
+                    submitLabel: .next,
+                    onSubmitAction: { focusedField = .email },
                     focus: $focusedField,
                     fieldIdentifier: .name,
                     isValid: viewModel.isNameValid,
@@ -87,6 +89,8 @@ struct SignupView: View {
                     keyboardType: .emailAddress,
                     textContentType: .emailAddress,
                     autocapitalization: .none,
+                    submitLabel: .next,
+                    onSubmitAction: { focusedField = .password },
                     focus: $focusedField,
                     fieldIdentifier: .email,
                     isValid: viewModel.isEmailValid,
@@ -107,6 +111,8 @@ struct SignupView: View {
                     isSecure: true,
                     isPasswordVisible: $isPasswordVisible,
                     textContentType: .newPassword,
+                    submitLabel: .done,
+                    onSubmitAction: { viewModel.signUpWithEmail() },
                     focus: $focusedField,
                     fieldIdentifier: .password,
                     isValid: viewModel.isPasswordValid,
@@ -166,19 +172,20 @@ struct SignupView: View {
                 }
             }
         }
-        .onChange(of: viewModel.didCompleteSignup) { completed in
-            if completed { 
-                // Başarılı kayıttan sonra ne olacağı LoginViewModel'e bırakıldı
-                // Belki viewModel.delegate?.didCompleteSignup() gibi bir yapı kullanılır
-            }
+        .contentShape(Rectangle()) 
+        .onTapGesture {
+            focusedField = nil 
         }
+        // Klavye açıldığında görünümün yeniden boyutlanmasını engelle
+        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 }
 
 #Preview {
     // Preview için geçici bir LoginViewModel oluşturup SignupViewModel'e geçirelim
-    let loginVM = LoginViewModel()
-    let signupVM = SignupViewModel(loginViewModel: loginVM)
+    // let loginVM = LoginViewModel()
+    // let signupVM = SignupViewModel(loginViewModel: loginVM) // Eski init
+    let signupVM = SignupViewModel(onAuthenticationSuccess: nil) // Yeni init
     return SignupView(viewModel: signupVM, onLoginTapped: {}, onCloseTapped: {}) 
 }
 
@@ -194,6 +201,10 @@ struct CustomInputField<FieldContentType: View, FocusableFieldType: Hashable>: V
     var keyboardType: UIKeyboardType = .default
     var textContentType: UITextContentType? = nil
     var autocapitalization: UITextAutocapitalizationType = .sentences
+    
+    // Yeni property'ler
+    var submitLabel: SubmitLabel = .next // Varsayılanı .next
+    var onSubmitAction: (() -> Void)? = nil // Submit tuşuna basılınca çalışacak action
     
     // Odaklanma durumu (Generic tipler kullanıldı)
     var focus: FocusState<FocusableFieldType?>.Binding
@@ -251,7 +262,11 @@ struct CustomInputField<FieldContentType: View, FocusableFieldType: Hashable>: V
                 .keyboardType(keyboardType)
                 .textContentType(textContentType)
                 .autocapitalization(autocapitalization)
-                .frame(height: 48) // Sabit yükseklik verelim
+                .submitLabel(submitLabel)
+                .onSubmit {
+                    onSubmitAction?()
+                }
+                .frame(height: 48)
 
             // Sağdaki Butonlar (Renkler griye sabitlendi)
             HStack(spacing: 10) {
@@ -270,7 +285,8 @@ struct CustomInputField<FieldContentType: View, FocusableFieldType: Hashable>: V
                     Button {
                         isPasswordVisible.toggle()
                     } label: {
-                        Image(systemName: isPasswordVisible ? "eye.slash.fill" : "eye.fill")
+                        // İkon mantığı tersine çevrildi: Durumu göster
+                        Image(systemName: isPasswordVisible ? "eye.fill" : "eye.slash.fill") 
                             .foregroundColor(.gray) // Renk griye sabitlendi
                     }
                 }

@@ -12,8 +12,12 @@ struct AuthenticationSheetView: View {
     init(loginViewModel: LoginViewModel) {
         self.loginViewModel = loginViewModel
         // StateObject'leri burada başlatıyoruz
-        self._signupViewModel = StateObject(wrappedValue: SignupViewModel(loginViewModel: loginViewModel))
-        self._emailLoginViewModel = StateObject(wrappedValue: EmailLoginViewModel(loginViewModel: loginViewModel))
+        self._signupViewModel = StateObject(wrappedValue: SignupViewModel(
+            onAuthenticationSuccess: loginViewModel.requestCompleteAuthentication
+        ))
+        self._emailLoginViewModel = StateObject(wrappedValue: EmailLoginViewModel(
+            onAuthenticationSuccess: loginViewModel.requestCompleteAuthentication
+        ))
     }
     
     var body: some View {

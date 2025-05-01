@@ -30,14 +30,13 @@ class SignupViewModel: ObservableObject {
     // Genel Hata ve Durum
     @Published var genericErrorMessage: String? = nil
     @Published var isLoading = false
-    @Published var didCompleteSignup = false // Kayıt başarılı olursa bunu true yap
     
-    // LoginViewModel ile iletişim için (başarılı kayıtta çağrılacak)
-    private weak var loginViewModel: LoginViewModel?
+    // Başarı closure'ı (Coordinator veya üst ViewModel tarafından sağlanacak)
+    private var onAuthenticationSuccess: (() -> Void)?
     
-    // ViewModel'i inject etmek için init
-    init(loginViewModel: LoginViewModel?) {
-        self.loginViewModel = loginViewModel
+    // ViewModel'i inject etmek ve başarı closure'ını almak için init
+    init(onAuthenticationSuccess: (() -> Void)?) {
+        self.onAuthenticationSuccess = onAuthenticationSuccess
     }
     
     // Formun format/uzunluk açısından geçerliliği
@@ -137,18 +136,13 @@ class SignupViewModel: ObservableObject {
         let changeRequest = user.createProfileChangeRequest()
         changeRequest.displayName = self.name
         changeRequest.commitChanges { [weak self] error in
-            // Profil güncelleme hatası olsa bile kaydı başarılı sayabiliriz.
-            // LoginViewModel'i haberdar et.
             DispatchQueue.main.async {
                 self?.isLoading = false
                 if let error = error {
                     print("Profil güncelleme hatası: \(error.localizedDescription)")
-                    // Belki kullanıcıya bilgi verilebilir ama akış devam etmeli
-                    // self?.genericErrorMessage = "error_profile_update_failed"
                 }
                 print("Firebase kaydı ve profil güncelleme başarılı: \(user.uid)")
-                self?.didCompleteSignup = true // View'ın kapatılması için state
-                self?.loginViewModel?.requestCompleteAuthentication() // Ana akışı devam ettir
+                self?.onAuthenticationSuccess?()
             }
         }
     }

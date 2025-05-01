@@ -19,12 +19,12 @@ class EmailLoginViewModel: ObservableObject {
     // Hata durumunda odaklanılacak alan isteği (View bunu dinleyecek)
     @Published var fieldToFocus: EmailLoginView.LoginField? = nil
     
-    // LoginViewModel ile iletişim için (başarılı girişte çağrılacak)
-    private weak var loginViewModel: LoginViewModel?
+    // Başarı closure'ı
+    private var onAuthenticationSuccess: (() -> Void)?
     
-    // ViewModel'i inject etmek için init
-    init(loginViewModel: LoginViewModel?) {
-        self.loginViewModel = loginViewModel
+    // ViewModel'i inject etmek ve başarı closure'ını almak için init
+    init(onAuthenticationSuccess: (() -> Void)?) {
+        self.onAuthenticationSuccess = onAuthenticationSuccess
     }
 
     // Giriş fonksiyonu (şimdilik sadece validasyon)
@@ -68,7 +68,12 @@ class EmailLoginViewModel: ObservableObject {
             DispatchQueue.main.async {
                 print("Firebase girişi başarılı: \(user.uid)")
                 self.isLoggingIn = false
-                self.loginViewModel?.requestCompleteAuthentication() // Ana akışı devam ettir
+                // Klavyeyi kapat
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                // Küçük bir gecikmeyle ana akışı devam ettir (Bu kalabilir veya kaldırılabilir, Coordinator yönetirse daha iyi)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { 
+                    self.onAuthenticationSuccess?() // Yeni closure'ı çağır
+                }
             }
         }
     }
