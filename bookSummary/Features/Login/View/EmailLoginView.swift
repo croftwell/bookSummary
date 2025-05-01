@@ -148,6 +148,13 @@ struct EmailLoginView: View {
         .onTapGesture {
             focusedLoginField = nil // Odak kaybetme
         }
+        // ViewModel'den gelen odaklanma isteğini dinle
+        .onChange(of: viewModel.fieldToFocus) { newFocusField in
+            if let field = newFocusField {
+                focusedLoginField = field
+                // viewModel.resetFocusRequest() // Gerekirse odak isteğini sıfırlama eklenebilir
+            }
+        }
     }
 }
 

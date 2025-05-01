@@ -16,6 +16,9 @@ class EmailLoginViewModel: ObservableObject {
     @Published var emailErrorMessage: String? // Lokalize anahtar veya metin
     @Published var passwordErrorMessage: String? // Lokalize anahtar veya metin
 
+    // Hata durumunda odaklanılacak alan isteği (View bunu dinleyecek)
+    @Published var fieldToFocus: EmailLoginView.LoginField? = nil
+    
     // LoginViewModel ile iletişim için (başarılı girişte çağrılacak)
     private weak var loginViewModel: LoginViewModel?
     
@@ -31,9 +34,12 @@ class EmailLoginViewModel: ObservableObject {
         
         // Yerel validasyon (boşluk, format vs.)
         guard validateFields() else {
-            // Odaklanma eklenebilir
-            // if !isEmailValid { fieldToFocus = .email }
-            // else if !isPasswordValid { fieldToFocus = .password }
+            // Odaklanma eklendi
+            if !isEmailValid {
+                fieldToFocus = .email
+            } else if !isPasswordValid {
+                fieldToFocus = .password
+            }
             print("Yerel validasyon başarısız.")
             return
         }
@@ -121,12 +127,15 @@ class EmailLoginViewModel: ObservableObject {
             case .wrongPassword:
                 self.errorMessage = "error_wrong_password"
                 self.isPasswordValid = false
+                self.fieldToFocus = .password // Şifreye odaklan
             case .invalidEmail:
                 self.errorMessage = "error_email_invalid"
                 self.isEmailValid = false
+                self.fieldToFocus = .email // Email'e odaklan
             case .userNotFound, .userDisabled:
                 self.errorMessage = "error_user_not_found"
-                self.isEmailValid = false
+                self.isEmailValid = false 
+                self.fieldToFocus = .email // Email'e odaklan
             case .networkError:
                 self.errorMessage = "error_network_error"
             default:
