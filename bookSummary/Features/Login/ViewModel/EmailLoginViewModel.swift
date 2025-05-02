@@ -44,6 +44,9 @@ class EmailLoginViewModel: ObservableObject {
             return
         }
         
+        // Firebase isteğinden ÖNCE klavyeyi kapat
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        
         isLoggingIn = true
         
         Auth.auth().signIn(withEmail: email, password: password) { [weak self] authResult, error in

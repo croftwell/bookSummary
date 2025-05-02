@@ -51,112 +51,115 @@ struct SignupView: View {
             
             Divider()
 
-            // Form İçeriği ScrollView içinde
-            VStack(alignment: .leading, spacing: 5) {
-                
-                // Ad Alanı
-                if viewModel.didAttemptSignup, let errorKey = viewModel.nameErrorMessage {
-                    Text(LocalizedStringKey(errorKey), tableName: "Auth").foregroundColor(.red).font(.caption)
-                }
-                CustomInputField(
-                    iconName: "person.fill",
-                    placeholder: String(localized: "signup_name_placeholder", table: "Auth"),
-                    text: $viewModel.name,
-                    isSecure: false,
-                    isPasswordVisible: .constant(false),
-                    textContentType: .name,
-                    submitLabel: .next,
-                    onSubmitAction: { focusedField = .email },
-                    focus: $focusedField,
-                    fieldIdentifier: .name,
-                    isValid: viewModel.isNameValid,
-                    didAttemptSignup: viewModel.didAttemptSignup
-                ) { 
-                    TextField(String(localized: "signup_name_placeholder", table: "Auth"), text: $viewModel.name)
-                }
-                .padding(.bottom, 10)
-                
-                // E-posta Alanı
-                if viewModel.didAttemptSignup, let errorKey = viewModel.emailErrorMessage {
-                    Text(LocalizedStringKey(errorKey), tableName: "Auth").foregroundColor(.red).font(.caption)
-                }
-                CustomInputField(
-                    iconName: "envelope.fill",
-                    placeholder: String(localized: "signup_email_placeholder", table: "Auth"),
-                    text: $viewModel.email,
-                    isSecure: false,
-                    isPasswordVisible: .constant(false),
-                    keyboardType: .emailAddress,
-                    textContentType: .emailAddress,
-                    autocapitalization: .none,
-                    submitLabel: .next,
-                    onSubmitAction: { focusedField = .password },
-                    focus: $focusedField,
-                    fieldIdentifier: .email,
-                    isValid: viewModel.isEmailValid,
-                    didAttemptSignup: viewModel.didAttemptSignup
-                ) { 
-                    TextField(String(localized: "signup_email_placeholder", table: "Auth"), text: $viewModel.email)
-                }
-                .padding(.bottom, 10)
-                
-                // Şifre Alanı (Görünürlüğe göre TextField veya SecureField)
-                if viewModel.didAttemptSignup, let errorKey = viewModel.passwordErrorMessage {
-                    Text(LocalizedStringKey(errorKey), tableName: "Auth").foregroundColor(.red).font(.caption)
-                }
-                CustomInputField(
-                    iconName: "lock.fill",
-                    placeholder: String(localized: "signup_password_placeholder", table: "Auth"),
-                    text: $viewModel.password,
-                    isSecure: true,
-                    isPasswordVisible: $isPasswordVisible,
-                    textContentType: .newPassword,
-                    submitLabel: .done,
-                    onSubmitAction: { viewModel.signUpWithEmail() },
-                    focus: $focusedField,
-                    fieldIdentifier: .password,
-                    isValid: viewModel.isPasswordValid,
-                    didAttemptSignup: viewModel.didAttemptSignup
-                ) { 
-                    Group {
-                        if isPasswordVisible {
-                            TextField(String(localized: "signup_password_placeholder", table: "Auth"), text: $viewModel.password)
-                        } else {
-                            SecureField(String(localized: "signup_password_placeholder", table: "Auth"), text: $viewModel.password)
+            // ScrollView eklendi
+            ScrollView {
+                VStack(alignment: .leading, spacing: 5) {
+                    
+                    // Ad Alanı
+                    if viewModel.didAttemptSignup, let errorKey = viewModel.nameErrorMessage {
+                        Text(LocalizedStringKey(errorKey), tableName: "Auth").foregroundColor(.red).font(.caption)
+                    }
+                    CustomInputField(
+                        iconName: "person.fill",
+                        placeholder: String(localized: "signup_name_placeholder", table: "Auth"),
+                        text: $viewModel.name,
+                        isSecure: false,
+                        isPasswordVisible: .constant(false),
+                        textContentType: .name,
+                        submitLabel: .next,
+                        onSubmitAction: { 
+                            // Odak değişikliğini asenkron yap
+                            DispatchQueue.main.async { focusedField = .email } 
+                        },
+                        focus: $focusedField,
+                        fieldIdentifier: .name,
+                        isValid: viewModel.isNameValid,
+                        didAttemptSignup: viewModel.didAttemptSignup
+                    ) { 
+                        TextField(String(localized: "signup_name_placeholder", table: "Auth"), text: $viewModel.name)
+                    }
+                    .padding(.bottom, 10)
+                    
+                    // E-posta Alanı
+                    if viewModel.didAttemptSignup, let errorKey = viewModel.emailErrorMessage {
+                        Text(LocalizedStringKey(errorKey), tableName: "Auth").foregroundColor(.red).font(.caption)
+                    }
+                    CustomInputField(
+                        iconName: "envelope.fill",
+                        placeholder: String(localized: "signup_email_placeholder", table: "Auth"),
+                        text: $viewModel.email,
+                        isSecure: false,
+                        isPasswordVisible: .constant(false),
+                        keyboardType: .emailAddress,
+                        textContentType: .emailAddress,
+                        autocapitalization: .none,
+                        submitLabel: .next,
+                        onSubmitAction: { 
+                            // Odak değişikliğini asenkron yap
+                            DispatchQueue.main.async { focusedField = .password }
+                        },
+                        focus: $focusedField,
+                        fieldIdentifier: .email,
+                        isValid: viewModel.isEmailValid,
+                        didAttemptSignup: viewModel.didAttemptSignup
+                    ) { 
+                        TextField(String(localized: "signup_email_placeholder", table: "Auth"), text: $viewModel.email)
+                    }
+                    .padding(.bottom, 10)
+                    
+                    // Şifre Alanı (Görünürlüğe göre TextField veya SecureField)
+                    if viewModel.didAttemptSignup, let errorKey = viewModel.passwordErrorMessage {
+                        Text(LocalizedStringKey(errorKey), tableName: "Auth").foregroundColor(.red).font(.caption)
+                    }
+                    CustomInputField(
+                        iconName: "lock.fill",
+                        placeholder: String(localized: "signup_password_placeholder", table: "Auth"),
+                        text: $viewModel.password,
+                        isSecure: true,
+                        isPasswordVisible: $isPasswordVisible,
+                        textContentType: .newPassword,
+                        submitLabel: .done,
+                        onSubmitAction: { viewModel.signUpWithEmail() },
+                        focus: $focusedField,
+                        fieldIdentifier: .password,
+                        isValid: viewModel.isPasswordValid,
+                        didAttemptSignup: viewModel.didAttemptSignup
+                    ) { 
+                        Group {
+                            if isPasswordVisible {
+                                TextField(String(localized: "signup_password_placeholder", table: "Auth"), text: $viewModel.password)
+                            } else {
+                                SecureField(String(localized: "signup_password_placeholder", table: "Auth"), text: $viewModel.password)
+                            }
                         }
                     }
-                }
-                .padding(.bottom, 10)
-                
-                // Genel Hata Mesajı
-                if let errorKeyOrMessage = viewModel.genericErrorMessage {
-                    // Eğer anahtar ise localize et, değilse direkt göster (Firebase hatası gibi)
-                    Text(LocalizedStringKey(errorKeyOrMessage), tableName: "Auth")
-                        .foregroundColor(.red)
-                        .font(.caption)
-                        .padding(.top, 5)
-                }
-                
-                // Kaydol Butonu (Inputların hemen altında)
-                Button(action: { 
-                    viewModel.signUpWithEmail() 
-                }) {
-                    if viewModel.isLoading {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                    } else {
-                        Text(LocalizedStringKey("signup_button"), tableName: "Auth").frame(maxWidth: .infinity)
+                    .padding(.bottom, 10)
+                    
+                    // Genel Hata Mesajı
+                    if let errorKeyOrMessage = viewModel.genericErrorMessage {
+                        Text(LocalizedStringKey(errorKeyOrMessage), tableName: "Auth")
+                            .foregroundColor(.red)
+                            .font(.caption)
+                            .padding(.top, 5)
                     }
+                    
+                    // Kaydol Butonu (Inputların hemen altında)
+                    Button(action: { 
+                        viewModel.signUpWithEmail() 
+                    }) {
+                        if viewModel.isLoading {
+                            ProgressView().frame(maxWidth: .infinity)
+                        } else {
+                            Text(LocalizedStringKey("signup_button"), tableName: "Auth").frame(maxWidth: .infinity)
+                        }
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .disabled(viewModel.isLoading)
+                    .padding(.top, 10) 
+
                 }
-                .buttonStyle(PrimaryButtonStyle())
-                .disabled(viewModel.isLoading)
-                .padding(.top, 10) // Üstteki alanla biraz boşluk
-                
-                // Formun altına boşluk eklemek için (ScrollView yoksa gerekli olabilir)
-                Spacer()
-                
-            }
-            .padding() // Form içeriği için padding
+                .padding() // Form içeriği için padding
+            } // ScrollView sonu
             .onAppear {
                 // View göründüğünde ilk alana odaklan (küçük gecikmeyle)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {

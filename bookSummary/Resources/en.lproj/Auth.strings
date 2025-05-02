@@ -25,6 +25,8 @@
 "login_email_placeholder" = "Email Address";
 "login_password_placeholder" = "Password";
 "login_button" = "Log In";
+"login_forgot_password_button" = "Forgot Password?";
+"login_forgot_password_link" = "Forgot your password?";
 
 /* --- Firebase Auth Errors --- */
 "error_email_already_in_use" = "This email address is already in use.";
@@ -33,4 +35,11 @@
 "error_user_not_found" = "No user found with this email address.";
 "error_network_error" = "Network error. Please check your internet connection.";
 "error_generic_login_failed" = "Login failed. Please check your credentials and try again.";
-"error_generic_auth_failed" = "An authentication error occurred. Please try again."; // More generic 
+"error_generic_auth_failed" = "An authentication error occurred. Please try again."; // More generic
+
+/* --- Forgot Password View --- */
+"forgot_password_title" = "Password Reset";
+"forgot_password_description" = "Enter the email address associated with your account and we'll send you a link to reset your password.";
+"forgot_password_email_placeholder" = "Email Address";
+"forgot_password_button" = "Send Reset Link";
+"forgot_password_success_message" = "Password reset email sent. Please check your inbox (and spam folder)."; 

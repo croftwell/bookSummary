@@ -105,6 +105,9 @@ class SignupViewModel: ObservableObject {
             return 
         }
         
+        // Firebase isteğinden ÖNCE klavyeyi kapat
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        
         isLoading = true
         genericErrorMessage = nil
         

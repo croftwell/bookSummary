@@ -2,11 +2,12 @@ import SwiftUI
 
 struct LoginView: View {
     
-    // ViewModel dışarıdan Coordinator tarafından inject edilecek
-    @ObservedObject var viewModel: LoginViewModel
+    @StateObject var viewModel = LoginViewModel() // StateObject olarak değiştirildi
     
     var body: some View {
+        // Ana ZStack kaldırıldı, alert artık AuthenticationSheetView içinde
         NavigationView { 
+            // İçerik doğrudan VStack'te
             VStack(spacing: 20) {
                 Spacer()
                 
@@ -23,39 +24,27 @@ struct LoginView: View {
                 
                 // Mail ile Giriş / Kaydol
                 Button("Mail ile Devam Et") {
-                    // TODO: Bu buton ya doğrudan Email Login'i açmalı ya da
-                    // bir ara seçim sunup Login/Signup'ı viewModel'e bildirmeli.
-                    // Şimdilik Signup'ı tetikleyelim:
                     viewModel.requestShowSignup()
                 }
                 .buttonStyle(PrimaryButtonStyle())
-                
-                // Şifremi Unuttum Butonu (Örnek)
-                Button("Şifremi Unuttum") {
-                    viewModel.requestShowForgotPassword()
-                }
-                .font(.footnote)
-                .padding(.top, 5)
                 
                 Spacer()
                 Spacer()
             }
             .padding()
-            .navigationBarHidden(true)
-            // Eski sheet modifier'ları kaldırıldı
-            // .sheet(isPresented: $viewModel.isPresentingSignupSheet) { ... }
-            // .sheet(isPresented: $viewModel.isPresentingEmailLoginSheet) { ... }
-            // .sheet(isPresented: $viewModel.isPresentingForgotPasswordSheet) { ... }
-            
-            // Yeni tek sheet modifier
-            .sheet(isPresented: Binding<Bool>( // currentSheetMode != .none olduğunda göster
-                get: { viewModel.currentSheetMode != .none },
-                set: { if !$0 { viewModel.dismissSheet() } } // Kapatıldığında modu .none yap
-            )) {
-                // AuthenticationSheetView'ı viewModel ile sun
-                AuthenticationSheetView(loginViewModel: viewModel)
-            }
+            .navigationBarHidden(true) // Navigation bar gizlense bile stil etkili olabilir
         }
+        // Tablette stack stilini zorlamak için modifier eklendi
+        .navigationViewStyle(.stack)
+        // Ana Kimlik Doğrulama Sheet'i NavigationView'a ekleniyor
+        .sheet(isPresented: Binding<Bool>( 
+            get: { viewModel.currentSheetMode != .none },
+            set: { if !$0 { viewModel.dismissSheet() } } 
+        )) {
+            AuthenticationSheetView(loginViewModel: viewModel)
+                .environmentObject(viewModel) 
+        }
+        // Alert kodu buradaydı, kaldırıldı.
     }
 }
 
@@ -99,6 +88,5 @@ struct SocialLoginButton: View {
 // --- Önizleme ---
 
 #Preview {
-    // Önizleme için geçici ViewModel oluştur
-    LoginView(viewModel: LoginViewModel())
+    LoginView()
 } 

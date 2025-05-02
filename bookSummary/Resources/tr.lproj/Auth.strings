@@ -25,6 +25,8 @@
 "login_email_placeholder" = "E-posta Adresi";
 "login_password_placeholder" = "Şifre";
 "login_button" = "Giriş Yap";
+"login_forgot_password_button" = "Şifremi Unuttum?";
+"login_forgot_password_link" = "Şifreni mi Unuttun?";
 
 /* --- Firebase Auth Errors --- */
 "error_email_already_in_use" = "Bu e-posta adresi zaten kullanımda.";
@@ -33,4 +35,11 @@
 "error_user_not_found" = "Bu e-posta adresi ile kayıtlı kullanıcı bulunamadı.";
 "error_network_error" = "Ağ hatası. Lütfen internet bağlantınızı kontrol edin.";
 "error_generic_login_failed" = "Giriş yapılamadı. Lütfen bilgilerinizi kontrol edip tekrar deneyin.";
-"error_generic_auth_failed" = "Bir kimlik doğrulama hatası oluştu. Lütfen tekrar deneyin."; // Daha genel 
+"error_generic_auth_failed" = "Bir kimlik doğrulama hatası oluştu. Lütfen tekrar deneyin."; // Daha genel
+
+/* --- Forgot Password View --- */
+"forgot_password_title" = "Şifre Sıfırlama";
+"forgot_password_description" = "Hesabınıza ait e-posta adresini girin. Size şifrenizi sıfırlamanız için bir bağlantı göndereceğiz.";
+"forgot_password_email_placeholder" = "E-posta Adresi";
+"forgot_password_button" = "Sıfırlama Bağlantısı Gönder";
+"forgot_password_success_message" = "Şifre sıfırlama e-postası gönderildi. Lütfen gelen kutunuzu (ve spam klasörünü) kontrol edin."; 

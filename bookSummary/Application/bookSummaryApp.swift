@@ -17,6 +17,9 @@ struct bookSummaryApp: App {
     // Kimlik doğrulama durumunu takip et
     @State private var isAuthenticated: Bool = false // Varsayılan: false
 
+    // --- TEST İÇİN DURUM EKLENDİ --- 
+    @State private var shouldShowLoginAfterOnboardingTest = false
+
     // AppCoordinator'ı veya bu durumda basitçe OnboardingCoordinator'ı yönetmek için
     @StateObject private var onboardingCoordinator = OnboardingCoordinator()
     @StateObject private var loginCoordinator = LoginCoordinator()
@@ -32,11 +35,41 @@ struct bookSummaryApp: App {
     var body: some Scene {
         WindowGroup {
             // Duruma göre hangi View/Coordinator'ın gösterileceğini belirle
+            
+            // --- TEST: Onboarding'i daima göster, bitince Login'e geç --- 
+            if shouldShowLoginAfterOnboardingTest {
+                // Onboarding testte bittikten sonra Login'i göster
+                loginCoordinator.start()
+                    .onAppear {
+                        // Login bittiğinde normal akışa dönülebilir
+                        loginCoordinator.didFinishAuth = {
+                            self.isAuthenticated = true
+                            // İsterseniz test için hasCompletedOnboarding'i de burada true yapabilirsiniz
+                            // self.hasCompletedOnboarding = true 
+                        }
+                    }
+            } else {
+                // Başlangıçta veya test login henüz tetiklenmediyse Onboarding'i göster
+                onboardingCoordinator.start()
+                    .onAppear {
+                        onboardingCoordinator.didFinishOnboarding = {
+                            // Onboarding bitince durumu güncellemeyi GEÇİCİ OLARAK DEVRE DIŞI BIRAK
+                            // self.hasCompletedOnboarding = true 
+                            // Bunun yerine test durumunu güncelle
+                            self.shouldShowLoginAfterOnboardingTest = true
+                            // print("TEST: Onboarding bitti, Login tetiklenecek.") // İsteğe bağlı test mesajı
+                        }
+                    }
+            }
+
+            /* --- ORİJİNAL MANTIK --- 
+            // --- ORİJİNAL MANTIK AKTİF --- 
             if !hasCompletedOnboarding {
                 // 1. Onboarding Göster
                 onboardingCoordinator.start()
                     .onAppear {
                         onboardingCoordinator.didFinishOnboarding = {
+                            // Onboarding bitince durum güncelleniyor
                             self.hasCompletedOnboarding = true 
                         }
                     }
@@ -63,6 +96,8 @@ struct bookSummaryApp: App {
                 // TODO: Burayı gerçek ana içerik View'ınızla değiştirin
                 Text("Ana İçerik Buraya Gelecek. (Giriş Yapıldı, Alışkanlıklar Ayarlandı)")
             }
+             // --- ORİJİNAL MANTIK SONU --- 
+             --- ORİJİNAL MANTIK SONU --- */
         }
     }
 }

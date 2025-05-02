@@ -22,6 +22,10 @@ struct EmailLoginView: View {
     // Şifre Görünürlüğü
     @State private var isPasswordVisible = false
     
+    // LoginViewModel'e erişim (Şifremi Unuttum'u tetiklemek için)
+    // Not: Bu ideal değil, Coordinator daha iyi olurdu. Ama mevcut yapıda gerekli.
+    @EnvironmentObject var loginViewModel: LoginViewModel 
+    
     var body: some View {
         // NavigationView kaldırıldı
         VStack(spacing: 0) { // Spacing 0 yapıldı, padding ile ayarlanacak
@@ -58,93 +62,104 @@ struct EmailLoginView: View {
             
             Divider() // Başlık ve form arasına çizgi
 
-            // ScrollView kaldırıldı
-            // ScrollView {
-            VStack(alignment: .leading, spacing: 5) { // Eski spacing değeri buraya taşındı
-                // Spacer() // Üstteki spacer kaldırıldı
-                
-                // Büyük başlık metni kaldırıldı
-                // Text("E-posta ile Giriş Yap") ...
-                
-                // E-posta Alanı
-                if viewModel.didAttemptLogin, let errorKey = viewModel.emailErrorMessage {
-                    Text(LocalizedStringKey(errorKey), tableName: "Auth").foregroundColor(.red).font(.caption)
-                }
-                CustomInputField(
-                    iconName: "envelope.fill",
-                    placeholder: String(localized: "login_email_placeholder", table: "Auth"),
-                    text: $viewModel.email,
-                    isSecure: false,
-                    isPasswordVisible: .constant(false),
-                    keyboardType: .emailAddress,
-                    textContentType: .emailAddress,
-                    autocapitalization: .none,
-                    submitLabel: .next, 
-                    onSubmitAction: { focusedLoginField = .password },
-                    focus: $focusedLoginField,
-                    fieldIdentifier: .email,
-                    isValid: viewModel.isEmailValid,
-                    didAttemptSignup: viewModel.didAttemptLogin
-                ) { 
-                    TextField(String(localized: "login_email_placeholder", table: "Auth"), text: $viewModel.email)
-                }
-                .padding(.bottom, 10)
-                
-                // Şifre Alanı
-                if viewModel.didAttemptLogin, let errorKey = viewModel.passwordErrorMessage {
-                    Text(LocalizedStringKey(errorKey), tableName: "Auth").foregroundColor(.red).font(.caption)
-                }
-                CustomInputField(
-                    iconName: "lock.fill",
-                    placeholder: String(localized: "login_password_placeholder", table: "Auth"),
-                    text: $viewModel.password,
-                    isSecure: true,
-                    isPasswordVisible: $isPasswordVisible,
-                    textContentType: .password,
-                    submitLabel: .done, 
-                    onSubmitAction: { viewModel.login() },
-                    focus: $focusedLoginField,
-                    fieldIdentifier: .password,
-                    isValid: viewModel.isPasswordValid,
-                    didAttemptSignup: viewModel.didAttemptLogin
-                ) { 
-                    Group { // TextField/SecureField seçimi
-                        if isPasswordVisible {
-                            TextField(String(localized: "login_password_placeholder", table: "Auth"), text: $viewModel.password)
-                        } else {
-                            SecureField(String(localized: "login_password_placeholder", table: "Auth"), text: $viewModel.password)
+            // ScrollView eklendi
+            ScrollView {
+                VStack(alignment: .leading, spacing: 5) { 
+                    // Büyük başlık metni kaldırıldı
+                    // Text("E-posta ile Giriş Yap") ...
+                    
+                    // E-posta Alanı
+                    if viewModel.didAttemptLogin, let errorKey = viewModel.emailErrorMessage {
+                        Text(LocalizedStringKey(errorKey), tableName: "Auth").foregroundColor(.red).font(.caption)
+                    }
+                    CustomInputField(
+                        iconName: "envelope.fill",
+                        placeholder: String(localized: "login_email_placeholder", table: "Auth"),
+                        text: $viewModel.email,
+                        isSecure: false,
+                        isPasswordVisible: .constant(false),
+                        keyboardType: .emailAddress,
+                        textContentType: .emailAddress,
+                        autocapitalization: .none,
+                        submitLabel: .next, 
+                        onSubmitAction: { 
+                            // Odak değişikliğini asenkron yap
+                            DispatchQueue.main.async { focusedLoginField = .password } 
+                        },
+                        focus: $focusedLoginField,
+                        fieldIdentifier: .email,
+                        isValid: viewModel.isEmailValid,
+                        didAttemptSignup: viewModel.didAttemptLogin
+                    ) { 
+                        TextField(String(localized: "login_email_placeholder", table: "Auth"), text: $viewModel.email)
+                    }
+                    .padding(.bottom, 10)
+                    
+                    // Şifre Alanı
+                    if viewModel.didAttemptLogin, let errorKey = viewModel.passwordErrorMessage {
+                        Text(LocalizedStringKey(errorKey), tableName: "Auth").foregroundColor(.red).font(.caption)
+                    }
+                    CustomInputField(
+                        iconName: "lock.fill",
+                        placeholder: String(localized: "login_password_placeholder", table: "Auth"),
+                        text: $viewModel.password,
+                        isSecure: true,
+                        isPasswordVisible: $isPasswordVisible,
+                        textContentType: .password,
+                        submitLabel: .done, 
+                        onSubmitAction: { viewModel.login() },
+                        focus: $focusedLoginField,
+                        fieldIdentifier: .password,
+                        isValid: viewModel.isPasswordValid,
+                        didAttemptSignup: viewModel.didAttemptLogin
+                    ) { 
+                        Group { // TextField/SecureField seçimi
+                            if isPasswordVisible {
+                                TextField(String(localized: "login_password_placeholder", table: "Auth"), text: $viewModel.password)
+                            } else {
+                                SecureField(String(localized: "login_password_placeholder", table: "Auth"), text: $viewModel.password)
+                            }
                         }
                     }
-                }
-                .padding(.bottom, 10)
-                
-                // Genel Hata Mesajı (varsa)
-                if let errorMessage = viewModel.errorMessage {
-                    Text(LocalizedStringKey(errorMessage), tableName: "Auth") // Lokalize anahtar olarak kullan
-                        .foregroundColor(.red)
-                        .font(.caption)
-                        .padding(.top, 5)
-                }
-                
-                // Giriş Yap Butonu
-                Button(action: { 
-                    viewModel.login() // ViewModel'deki login fonksiyonunu çağır
-                }) {
-                    if viewModel.isLoggingIn {
-                        ProgressView().frame(maxWidth: .infinity)
-                    } else {
-                        Text(LocalizedStringKey("login_button"), tableName: "Auth").frame(maxWidth: .infinity) // Lokalize edildi
+                    
+                    // Genel Hata Mesajı (varsa)
+                    if let errorMessage = viewModel.errorMessage {
+                        Text(LocalizedStringKey(errorMessage), tableName: "Auth") 
+                            .foregroundColor(.red)
+                            .font(.caption)
+                            .padding(.top, 5)
                     }
+                    
+                    // Giriş Yap Butonu
+                    Button(action: { 
+                        viewModel.login()
+                    }) {
+                        if viewModel.isLoggingIn {
+                            ProgressView().frame(maxWidth: .infinity)
+                        } else {
+                            Text(LocalizedStringKey("login_button"), tableName: "Auth").frame(maxWidth: .infinity) 
+                        }
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .padding(.vertical, 20) 
+                    .disabled(viewModel.isLoggingIn)
+                    
+                    // Yeni Ortalanmış Şifremi Unuttum Butonu
+                    Button(action: { 
+                        loginViewModel.requestShowForgotPassword()
+                    }) {
+                        Text(LocalizedStringKey("login_forgot_password_link"), tableName: "Auth")
+                            .font(.footnote)
+                            .foregroundColor(.secondary) 
+                    }
+                    .frame(maxWidth: .infinity) 
+                    .padding(.bottom, 10)
                 }
-                .buttonStyle(PrimaryButtonStyle())
-                .padding(.top, 20) // Biraz daha boşluk
-                .disabled(viewModel.isLoggingIn)
-                
-                Spacer() // İçeriği yukarı it
-            }
-            .padding() // ScrollView içeriği için padding (Bu padding kalıyor)
-            // ScrollView kapatma parantezi kaldırıldı
-            // }
+                .padding() 
+            } // ScrollView sonu
+            // ScrollView'a ignoreSafeArea eklendi
+            .ignoresSafeArea(.keyboard, edges: .bottom)
+            // .padding() // ScrollView dışındaki padding kaldırıldı
         }
         // .padding() // En dış VStack padding'i kaldırıldı, içerideki paddingler yeterli
         // NavigationTitle, DisplayMode ve Toolbar kaldırıldı
@@ -152,8 +167,6 @@ struct EmailLoginView: View {
         .onTapGesture {
             focusedLoginField = nil // Odak kaybetme
         }
-        // Klavye açıldığında görünümün yeniden boyutlanmasını engelle
-        .ignoresSafeArea(.keyboard, edges: .bottom)
         .onChange(of: viewModel.fieldToFocus) { newFocusField in
             if let field = newFocusField {
                 focusedLoginField = field
@@ -164,9 +177,9 @@ struct EmailLoginView: View {
 }
 
 #Preview { 
-    // Preview için geçici bir LoginViewModel oluşturup EmailLoginViewModel'e geçirelim
-    // let loginVM = LoginViewModel() // Artık doğrudan LoginViewModel'e gerek yok
-    // let emailLoginVM = EmailLoginViewModel(loginViewModel: loginVM) // Eski init
-    let emailLoginVM = EmailLoginViewModel(onAuthenticationSuccess: nil) // Yeni init (Preview'da başarı action'ı nil olabilir)
-    return EmailLoginView(viewModel: emailLoginVM, onSignupTapped: {}, onCloseTapped: {}) 
+    let emailLoginVM = EmailLoginViewModel(onAuthenticationSuccess: nil)
+    // Preview için LoginViewModel'i EnvironmentObject olarak eklememiz gerekir
+    let loginVM = LoginViewModel() 
+    return EmailLoginView(viewModel: emailLoginVM, onSignupTapped: {}, onCloseTapped: {})
+        .environmentObject(loginVM) // Inject LoginViewModel for preview
 } 
