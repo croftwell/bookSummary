@@ -17,7 +17,10 @@ struct AuthenticationSheetView: View {
             onAuthenticationSuccess: onAuthSuccess
         ))
         self._emailLoginViewModel = StateObject(wrappedValue: EmailLoginViewModel(
-            onAuthenticationSuccess: onAuthSuccess
+            onAuthenticationSuccess: onAuthSuccess,
+            onErrorOccurred: { messageKey, type in 
+                loginViewModel.showAlert(messageKey: messageKey, type: type)
+            }
         ))
     }
     

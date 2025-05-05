@@ -21,10 +21,14 @@ class EmailLoginViewModel: ObservableObject {
     
     // Başarı closure'ı
     private var onAuthenticationSuccess: (() -> Void)?
-    
-    // ViewModel'i inject etmek ve başarı closure'ını almak için init
-    init(onAuthenticationSuccess: (() -> Void)?) {
+    // Hata closure'ı (messageKey, alertType)
+    private var onErrorOccurred: ((String, LoginViewModel.AlertType) -> Void)?
+
+    // ViewModel'i inject etmek ve başarı/hata closure'larını almak için init
+    init(onAuthenticationSuccess: (() -> Void)?,
+         onErrorOccurred: ((String, LoginViewModel.AlertType) -> Void)?) {
         self.onAuthenticationSuccess = onAuthenticationSuccess
+        self.onErrorOccurred = onErrorOccurred
     }
 
     // Giriş fonksiyonu (şimdilik sadece validasyon)
@@ -125,31 +129,40 @@ class EmailLoginViewModel: ObservableObject {
             // Hata kodunu almak için modern yöntem
             guard let authError = error as? AuthErrorCode else {
                 // Firebase dışı veya cast edilemeyen hata
-                self.errorMessage = "error_generic_login_failed"
-                print("Bilinmeyen Auth Hatası: \(error.localizedDescription)")
+                // self.errorMessage = "error_generic_login_failed" // Kaldırıldı
+                self.onErrorOccurred?("error_generic_login_failed", .error) // Yeni closure çağrısı
+                print("Bilinmeyen Auth Hatası: \\(error.localizedDescription)")
                 return
             }
             
             // Artık authError.code enum'unu kullanabiliriz
+            var errorKey = "error_generic_login_failed" // Varsayılan hata anahtarı
             switch authError.code {
             case .wrongPassword:
-                self.errorMessage = "error_wrong_password"
+                // self.errorMessage = "error_wrong_password" // Kaldırıldı
+                errorKey = "error_wrong_password"
                 self.isPasswordValid = false
                 self.fieldToFocus = .password // Şifreye odaklan
             case .invalidEmail:
-                self.errorMessage = "error_email_invalid"
+                // self.errorMessage = "error_email_invalid" // Kaldırıldı
+                errorKey = "error_email_invalid"
                 self.isEmailValid = false
                 self.fieldToFocus = .email // Email'e odaklan
             case .userNotFound, .userDisabled:
-                self.errorMessage = "error_user_not_found"
-                self.isEmailValid = false 
+                // self.errorMessage = "error_user_not_found" // Kaldırıldı
+                errorKey = "error_user_not_found"
+                self.isEmailValid = false
                 self.fieldToFocus = .email // Email'e odaklan
             case .networkError:
-                self.errorMessage = "error_network_error"
+                // self.errorMessage = "error_network_error" // Kaldırıldı
+                errorKey = "error_network_error"
             default:
-                self.errorMessage = "error_generic_login_failed"
+                // self.errorMessage = "error_generic_login_failed" // Kaldırıldı
+                errorKey = "error_generic_login_failed"
             }
-            print("Firebase Auth Hatası: \(error.localizedDescription)")
+            // Hata closure'ını çağır
+            self.onErrorOccurred?(errorKey, .error)
+            print("Firebase Auth Hatası: \\(error.localizedDescription)")
         }
     }
 

@@ -122,14 +122,6 @@ struct EmailLoginView: View {
                         }
                     }
                     
-                    // Genel Hata Mesajı (varsa)
-                    if let errorMessage = viewModel.errorMessage {
-                        Text(LocalizedStringKey(errorMessage), tableName: "Auth") 
-                            .foregroundColor(.red)
-                            .font(.caption)
-                            .padding(.top, 5)
-                    }
-                    
                     // Giriş Yap Butonu
                     Button(action: { 
                         viewModel.login()
@@ -177,9 +169,9 @@ struct EmailLoginView: View {
 }
 
 #Preview { 
-    let emailLoginVM = EmailLoginViewModel(onAuthenticationSuccess: nil)
+    let emailLoginVM = EmailLoginViewModel(onAuthenticationSuccess: nil, onErrorOccurred: nil)
     // Preview için LoginViewModel'i EnvironmentObject olarak eklememiz gerekir
     let loginVM = LoginViewModel() 
-    return EmailLoginView(viewModel: emailLoginVM, onSignupTapped: {}, onCloseTapped: {})
+    EmailLoginView(viewModel: emailLoginVM, onSignupTapped: {}, onCloseTapped: {})
         .environmentObject(loginVM) // Inject LoginViewModel for preview
 } 
