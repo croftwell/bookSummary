@@ -1,40 +1,32 @@
 import SwiftUI
 import Combine
 
-// Coordinator protokolü (Merkezi bir yerde tanımlı varsayılıyor)
-// protocol Coordinator { func start() -> AnyView }
-
+/// Kimlik doğrulama akışını (Giriş, Kayıt, Şifre Sıfırlama) yöneten coordinator.
 class LoginCoordinator: Coordinator, ObservableObject {
     
-    // Alt akışları gösterme durumları ViewModel'e taşındı
-    // @Published var isPresentingEmailLoginSheet = false
-    // @Published var isPresentingForgotPasswordSheet = false
-    
+    /// Kimlik doğrulama başarıyla tamamlandığında çağrılacak olan closure.
     var didFinishAuth: (() -> Void)?
+    
     private var cancellables = Set<AnyCancellable>()
     
     func start() -> AnyView {
+        // Bu akışın ana ViewModel'i oluşturulur.
         let viewModel = LoginViewModel()
         
-        // ViewModel'den gelen istekleri dinle (Artık sheet gösterme için değil)
-        // Başarılı kimlik doğrulama isteği gibi şeyler için kullanılabilir
-        viewModel.completeAuthenticationRequested = { [weak self] in
-             self?.completeAuthentication()
+        // ViewModel'den gelen "kimlik doğrulama tamamlandı" isteğini dinle.
+        viewModel.authenticationCompleted = { [weak self] in
+            self?.finishAuthentication()
         }
         
-        // LoginView'ı oluştur ve ViewModel'i inject et
+        // LoginView, ana ViewModel ile başlatılır.
+        // LoginView, kendi içindeki sheet'leri ve alt akışları bu ViewModel aracılığıyla yönetir.
         let view = LoginView(viewModel: viewModel)
-            // Sheet modifier'ları View'a taşındı
-            // .sheet(isPresented: $isPresentingEmailLoginSheet) { ... }
-            // .sheet(isPresented: $isPresentingForgotPasswordSheet) { ... }
-
+        
         return AnyView(view)
     }
     
-    func completeAuthentication() {
-        // Tüm sheet'leri kapat (gerekirse) -> Durumlar ViewModel'de olduğu için 
-        // Coordinator'ın doğrudan kapatmasına gerek kalmadı. 
-        // Sadece üst Coordinator'a bildirim yeterli.
+    /// Akışı sonlandırır ve üst katmanı (genellikle App) bilgilendirir.
+    private func finishAuthentication() {
         didFinishAuth?()
     }
-} 
+}

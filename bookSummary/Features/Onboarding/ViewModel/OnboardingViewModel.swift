@@ -1,20 +1,13 @@
 import Foundation
-import Combine // ViewModel genellikle state yönetimi için Combine kullanır
+import Combine
 
-// Onboarding sayfası için verileri ve durumu yönetecek ViewModel
+/// Tek bir `OnboardingPageView` için veri ve durumu yönetir.
 class OnboardingViewModel: ObservableObject {
-    // @Published ile işaretlenen değişkenler, SwiftUI View'larının otomatik olarak güncellenmesini sağlar
-    @Published var currentPageData: OnboardingPageData
+    
+    /// View tarafından görüntülenecek olan sayfa verisi.
+    @Published var pageData: OnboardingPageData
 
-    // Başlangıç verisiyle ViewModel'i başlat
     init(pageData: OnboardingPageData) {
-        self.currentPageData = pageData
+        self.pageData = pageData
     }
-
-    // Gelecekte buraya sayfa değiştirme, akışı tamamlama gibi mantıklar eklenebilir.
-    // Örneğin:
-    // func nextButtonTapped() { ... }
-    // func skipButtonTapped() { ... }
 }
-
-// OnboardingPageData struct tanımı yeni Model dosyasına taşındı. 

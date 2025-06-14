@@ -1,19 +1,20 @@
 import Foundation
 import Combine
-import SwiftUI // Color ve AlertType için
+import SwiftUI
 
 class LoginViewModel: ObservableObject {
     
-    // Ana Kimlik Doğrulama Sheet Modları
+    // MARK: - Enums
+    
+    /// Hangi kimlik doğrulama sheet'inin gösterileceğini belirler.
     enum AuthenticationSheetMode {
-        case none, signup, emailLogin // forgotPassword kaldırıldı
+        case none, signup, emailLogin
     }
     
-    // Özel Alert Türü
+    /// Özel alert bildiriminin türünü belirler.
     enum AlertType {
         case success
         case error
-        // Gerekirse info, warning eklenebilir
         
         var color: Color {
             switch self {
@@ -21,55 +22,59 @@ class LoginViewModel: ObservableObject {
             case .error: return .red
             }
         }
-        // Gerekirse ikon da eklenebilir
     }
     
-    // Hangi ana sheet modunun aktif olduğunu tutar
+    // MARK: - Published Properties
+    
+    /// Hangi ana sheet modunun aktif olduğunu tutar.
     @Published var currentSheetMode: AuthenticationSheetMode = .none
-    // Şifremi Unuttum sheet'i için ayrı state
+    
+    /// "Şifremi Unuttum" sheet'inin gösterilip gösterilmeyeceğini kontrol eder.
     @Published var isPresentingForgotPasswordSheet = false
     
-    // Özel Alert State'leri
+    /// Özel alert'in gösterilip gösterilmeyeceğini kontrol eder.
     @Published var isShowingAlert = false
-    @Published var alertMessage: String? // Lokalize anahtar
-    @Published var alertType: AlertType = .success // Varsayılan
     
-    var completeAuthenticationRequested: (() -> Void)? 
-    private var alertTimer: AnyCancellable? // Alert'i otomatik kapatmak için
-
-    // --- Ana Sheet Modunu Ayarlama --- 
+    /// Alert'te gösterilecek lokalize metin anahtarı.
+    @Published var alertMessage: String?
+    
+    /// Alert'in türü (başarı/hata).
+    @Published var alertType: AlertType = .success
+    
+    /// `isSheetPresented` computed property'si, `LoginView`'daki `.sheet` modifier'ını basitleştirir.
+    var isSheetPresented: Bool {
+        get { currentSheetMode != .none }
+        set { if !newValue { dismissSheet() } }
+    }
+    
+    // MARK: - Closures for Coordinator
+    
+    /// Tüm kimlik doğrulama akışı bittiğinde coordinator'ı bilgilendirmek için.
+    var authenticationCompleted: (() -> Void)?
+    
+    private var alertTimer: AnyCancellable?
+    
+    // MARK: - Sheet Management
+    
     func requestShowSignup() {
-        // Başka bir sheet açık değilken aç
         if currentSheetMode == .none && !isPresentingForgotPasswordSheet {
             currentSheetMode = .signup
         }
     }
     
-    func requestShowEmailLogin() {
-        if currentSheetMode == .none && !isPresentingForgotPasswordSheet {
-            currentSheetMode = .emailLogin
-        }
-    }
-    
-    // --- Şifremi Unuttum Sheet Yönetimi --- 
     func requestShowForgotPassword() {
-        // Ana sheet'i kapatma mantığı kaldırıldı
-        if !isPresentingForgotPasswordSheet { // Zaten açıksa tekrar açma
-             isPresentingForgotPasswordSheet = true
+        if !isPresentingForgotPasswordSheet {
+            isPresentingForgotPasswordSheet = true
         }
     }
     
-    // ForgotPasswordViewModel tarafından onCompletion ile çağrılacak
     func dismissForgotPasswordSheet(success: Bool) {
         isPresentingForgotPasswordSheet = false
-        
-        // Sadece başarılı durumda alert göster
         if success {
             showAlert(messageKey: "forgot_password_success_message", type: .success)
         }
     }
     
-    // --- Ana Sheet İçinde Mod Değiştirme --- (Bunlar aynı kalıyor)
     func switchToLoginMode() {
         currentSheetMode = .emailLogin
     }
@@ -78,49 +83,44 @@ class LoginViewModel: ObservableObject {
         currentSheetMode = .signup
     }
     
-    // --- Ana Sheet Kapatma ---
     func dismissSheet() {
         currentSheetMode = .none
     }
     
-    // --- Özel Alert Yönetimi --- 
-    func showAlert(messageKey: String, type: AlertType, duration: TimeInterval = 3.0) {
+    // MARK: - Alert Management
+    
+    func showAlert(messageKey: String, type: AlertType, duration: TimeInterval = 4.0) {
         alertMessage = messageKey
         alertType = type
         isShowingAlert = true
         
-        // Eski timer'ı iptal et (varsa)
         alertTimer?.cancel()
-        
-        // Yeni timer başlat
         alertTimer = Just(())
             .delay(for: .seconds(duration), scheduler: RunLoop.main)
-            .sink { [weak self] in
-                self?.dismissAlert()
-            }
+            .sink { [weak self] in self?.dismissAlert() }
     }
     
     func dismissAlert() {
-        alertTimer?.cancel() // Timer'ı durdur
+        alertTimer?.cancel()
         alertTimer = nil
-        withAnimation { // Kapanış animasyonu için
-             isShowingAlert = false
+        withAnimation {
+            isShowingAlert = false
         }
-        // Mesajı biraz gecikmeyle temizle ki animasyon bitince kaybolsun
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { 
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.alertMessage = nil
         }
     }
     
-    // --- Kimlik Doğrulama Tamamlama ---
+    // MARK: - Authentication Flow Completion
+    
     func requestCompleteAuthentication() {
         dismissSheet()
-        // dismissForgotPasswordSheet(success: false) // Başarıyı burada belirtmeye gerek yok
-        if isPresentingForgotPasswordSheet { isPresentingForgotPasswordSheet = false } 
-        dismissAlert() // Varsa alert'i de kapat
+        if isPresentingForgotPasswordSheet { isPresentingForgotPasswordSheet = false }
+        dismissAlert()
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { 
-            self.completeAuthenticationRequested?()
+        // Coordinator'ı bilgilendirmeden önce UI'ın kapanması için küçük bir gecikme
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            self.authenticationCompleted?()
         }
     }
-} 
+}

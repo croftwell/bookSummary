@@ -1,20 +1,17 @@
 import SwiftUI
 
-extension Color {
-    // Uygulama genelinde kullanılacak renk paleti
-    static let calmingBlue = Color(red: 100/255, green: 149/255, blue: 237/255) // Cornflower Blue
-    static let darkText = Color(white: 0.2) // Koyu Gri Metin
-    static let lightGrayBackground = Color(white: 0.96)
-    static let secondaryText = Color.gray
-    
-    // İleride başka uygulama renkleri buraya eklenebilir
-    // static let accentGreen = Color(red: ...)
-}
+// Not: Uygulama renkleri merkezi bir `Theme.swift` dosyasına taşındı.
+// Bu dosya, gelecekte Color'a eklenecek özel yardımcı fonksiyonlar
+// veya UIColor dönüşümleri için saklanabilir.
 
-// UIColor karşılıkları da gerekirse eklenebilir
 extension UIColor {
+    /// `Theme.calmingBlue` renginin UIColor karşılığı.
     static var calmingBlue: UIColor {
-        UIColor(Color.calmingBlue)
+        UIColor(Theme.calmingBlue)
     }
-    // ... diğerleri ...
-} 
+    
+    /// `Theme.linkedinBlue` renginin UIColor karşılığı.
+    static var linkedinBlue: UIColor {
+        UIColor(Theme.linkedinBlue)
+    }
+}

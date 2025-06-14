@@ -2,53 +2,61 @@ import SwiftUI
 
 struct LoginView: View {
     
-    @StateObject var viewModel = LoginViewModel() // StateObject olarak değiştirildi
+    @StateObject var viewModel: LoginViewModel
     
     var body: some View {
-        // Ana ZStack kaldırıldı, alert artık AuthenticationSheetView içinde
-        NavigationView { 
-            // İçerik doğrudan VStack'te
+        NavigationView {
             VStack(spacing: 20) {
                 Spacer()
                 
-                Text("Giriş Yap veya Kaydol")
-                    .font(.largeTitle).bold()
-                    .padding(.bottom, 30)
+                headerText
                 
-                // Giriş Butonları
-                SocialLoginButton(provider: .apple) { /* TODO: viewModel.appleLoginRequested() */ }
-                SocialLoginButton(provider: .google) { /* TODO: viewModel.googleLoginRequested() */ }
+                SocialLoginButton(provider: .apple) { /* TODO: viewModel.appleLogin() */ }
+                SocialLoginButton(provider: .google) { /* TODO: viewModel.googleLogin() */ }
                 
-                Divider()
-                    .padding(.vertical)
+                divider
                 
-                // Mail ile Giriş / Kaydol
-                Button("Mail ile Devam Et") {
-                    viewModel.requestShowSignup()
-                }
-                .buttonStyle(PrimaryButtonStyle())
+                emailContinueButton
                 
                 Spacer()
                 Spacer()
             }
             .padding()
-            .navigationBarHidden(true) // Navigation bar gizlense bile stil etkili olabilir
+            .navigationBarHidden(true)
+            .background(Color(.systemGroupedBackground).ignoresSafeArea())
         }
-        // Tablette stack stilini zorlamak için modifier eklendi
         .navigationViewStyle(.stack)
-        // Ana Kimlik Doğrulama Sheet'i NavigationView'a ekleniyor
-        .sheet(isPresented: Binding<Bool>( 
-            get: { viewModel.currentSheetMode != .none },
-            set: { if !$0 { viewModel.dismissSheet() } } 
-        )) {
+        .sheet(isPresented: $viewModel.isSheetPresented) {
             AuthenticationSheetView(loginViewModel: viewModel)
-                .environmentObject(viewModel) 
+                .environmentObject(viewModel)
         }
-        // Alert kodu buradaydı, kaldırıldı.
+    }
+    
+    private var headerText: some View {
+        Text("Giriş Yap veya Kaydol")
+            .font(.largeTitle).bold()
+            .multilineTextAlignment(.center)
+            .padding(.bottom, 30)
+    }
+    
+    private var divider: some View {
+        HStack {
+            VStack { Divider() }
+            Text("veya").foregroundColor(.secondary)
+            VStack { Divider() }
+        }
+        .padding(.vertical)
+    }
+    
+    private var emailContinueButton: some View {
+        Button("E-posta ile Devam Et") {
+            viewModel.requestShowSignup()
+        }
+        .buttonStyle(PrimaryButtonStyle())
     }
 }
 
-// --- Yardımcı View ve Stiller (Ayrı dosyalara taşınabilir) ---
+// MARK: - Social Login Button
 
 enum SocialProvider {
     case apple, google
@@ -60,7 +68,12 @@ enum SocialProvider {
         }
     }
     
-    // İkonlar için SF Symbols veya Asset isimleri eklenebilir
+    var iconName: String {
+        switch self {
+        case .apple: return "applelogo"
+        case .google: return "g.circle.fill" // Örnek ikon
+        }
+    }
 }
 
 struct SocialLoginButton: View {
@@ -70,23 +83,19 @@ struct SocialLoginButton: View {
     var body: some View {
         Button(action: action) {
             HStack {
-                // İkon eklenebilir (örn. Image(systemName: "applelogo"))
-                Spacer()
+                Image(systemName: provider.iconName)
                 Text(provider.title)
-                Spacer()
+                    .fontWeight(.medium)
             }
+            .frame(maxWidth: .infinity)
             .padding()
-            .background(Color(UIColor.systemGray5))
+            .background(Color(.systemGray5))
             .foregroundColor(.primary)
             .cornerRadius(10)
         }
     }
 }
 
-// PrimaryButtonStyle tanımı merkezi dosyaya taşındı.
-
-// --- Önizleme ---
-
 #Preview {
-    LoginView()
-} 
+    LoginView(viewModel: LoginViewModel())
+}

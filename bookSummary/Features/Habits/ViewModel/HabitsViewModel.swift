@@ -3,15 +3,31 @@ import Combine
 
 class HabitsViewModel: ObservableObject {
     
-    // TODO: Kullanıcının seçtiği alışkanlıkları tutacak state (@Published)
-    // @Published var selectedHabits: Set<String> = []
+    /// Kullanıcının seçebileceği tüm alışkanlıkların listesi.
+    let allHabits = ["Okuma", "Spor", "Meditasyon", "Yazma", "Müzik", "Kodlama", "Tarih", "Bilim Kurgu", "Kişisel Gelişim"]
     
+    /// Kullanıcının seçtiği alışkanlıkları tutar. View bu değişkeni dinler.
+    @Published var selectedHabits: Set<String> = []
+    
+    /// Akış tamamlandığında Coordinator'ı bilgilendirmek için kullanılır.
     var onComplete: (() -> Void)?
     
-    // TODO: Alışkanlıkları kaydetme mantığı
+    /// Kullanıcının bir alışkanlık seçimi yaptığında veya seçimini kaldırdığında çağrılır.
+    /// - Parameter habit: Seçilen veya seçimi kaldırılan alışkanlık.
+    func toggleSelection(for habit: String) {
+        if selectedHabits.contains(habit) {
+            selectedHabits.remove(habit)
+        } else {
+            selectedHabits.insert(habit)
+        }
+    }
+    
+    /// Seçilen alışkanlıkları kaydetme işlemini başlatır.
     func saveHabits() {
-        print("Alışkanlıklar kaydedildi (simülasyon).")
-        // Kaydetme işlemi başarılı olduktan sonra:
+        // TODO: Seçilen alışkanlıkları (self.selectedHabits) Firebase'e veya UserDefaults'a kaydetme mantığı.
+        print("Alışkanlıklar kaydedildi (simülasyon): \(selectedHabits)")
+        
+        // Kaydetme işlemi başarılı olduktan sonra Coordinator'ı bilgilendir.
         onComplete?()
     }
-} 
+}

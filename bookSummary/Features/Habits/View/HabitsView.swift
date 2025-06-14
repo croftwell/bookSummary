@@ -4,64 +4,70 @@ struct HabitsView: View {
     
     @ObservedObject var viewModel: HabitsViewModel
     
-    // Örnek alışkanlıklar (daha sonra ViewModel'den gelebilir)
-    let allHabits = ["Okuma", "Spor", "Meditasyon", "Yazma", "Müzik", "Kodlama"]
-    @State private var selectedHabits: Set<String> = []
-    
     var body: some View {
         NavigationView {
-            VStack(alignment: .leading) {
-                Text("İlgilendiğiniz Alanlar Neler?")
-                    .font(.largeTitle).bold()
-                    .padding(.bottom)
+            VStack(alignment: .leading, spacing: 0) {
+                headerView
                 
-                Text("Size özel öneriler sunabilmemiz için birkaç alan seçin.")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .padding(.bottom, 30)
-                
-                // Alışkanlık Seçim Alanı (Grid veya List kullanılabilir)
                 ScrollView {
-                    FlexibleGridView(data: allHabits, spacing: 10, alignment: .leading) { habit in
-                        Button(action: { toggleSelection(for: habit) }) {
-                            Text(habit)
-                                .padding(.horizontal, 15)
-                                .padding(.vertical, 8)
-                                .background(selectedHabits.contains(habit) ? Theme.linkedinBlue : Color(UIColor.systemGray5))
-                                .foregroundColor(selectedHabits.contains(habit) ? .white : .primary)
-                                .cornerRadius(15)
-                        }
-                    }
+                    habitsGrid
                 }
                 
                 Spacer()
                 
-                // Tamamla Butonu
-                Button("Tamamla") {
-                    // Seçilenleri ViewModel'e aktar ve kaydet
-                    // viewModel.selectedHabits = selectedHabits // Eğer ViewModel'de tutulacaksa
-                    viewModel.saveHabits()
-                }
-                .buttonStyle(PrimaryButtonStyle()) // LoginView'dan alınan stil
-                .disabled(selectedHabits.isEmpty) // Seçim yapılmadıysa pasif
-                
+                completeButton
             }
             .padding()
             .navigationBarHidden(true)
+            .background(Color(.systemGroupedBackground).ignoresSafeArea())
         }
     }
     
-    private func toggleSelection(for habit: String) {
-        if selectedHabits.contains(habit) {
-            selectedHabits.remove(habit)
-        } else {
-            selectedHabits.insert(habit)
+    private var headerView: some View {
+        VStack(alignment: .leading) {
+            Text("İlgilendiğiniz Alanlar")
+                .font(.largeTitle).bold()
+                .padding(.bottom, 8)
+            
+            Text("Size özel öneriler sunabilmemiz için birkaç alan seçin.")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .padding(.bottom, 30)
         }
+    }
+    
+    private var habitsGrid: some View {
+        // Derleyiciye yardımcı olmak için viewModel'den gelen verileri yerel bir sabite atıyoruz.
+        let allHabits = viewModel.allHabits
+        let selectedHabits = viewModel.selectedHabits
+        
+        return FlexibleGridView(data: allHabits, spacing: 12, alignment: .leading) { habit in
+            Button(action: {
+                viewModel.toggleSelection(for: habit)
+            }) {
+                Text(habit)
+                    .font(.callout)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(selectedHabits.contains(habit) ? Theme.linkedinBlue : Color(.systemGray5))
+                    .foregroundColor(selectedHabits.contains(habit) ? .white : .primary)
+                    .cornerRadius(20)
+            }
+        }
+    }
+    
+    private var completeButton: some View {
+        // Butonun durumunu yerel bir sabite atıyoruz.
+        let isDisabled = viewModel.selectedHabits.isEmpty
+        
+        return Button("Tamamla") {
+            viewModel.saveHabits()
+        }
+        .buttonStyle(PrimaryButtonStyle())
+        .disabled(isDisabled)
     }
 }
 
-// Esnek Grid Layout ve yardımcıları merkezi dosyaya taşındı.
-
 #Preview {
     HabitsView(viewModel: HabitsViewModel())
-} 
+}

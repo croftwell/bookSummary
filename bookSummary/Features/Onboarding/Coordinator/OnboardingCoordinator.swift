@@ -1,45 +1,42 @@
 import SwiftUI
 import Combine
 
-// Uygulama genelindeki Coordinator protokolü (Eğer yoksa oluşturulmalı veya uygun olan kullanılmalı)
+/// Uygulama genelindeki Coordinator protokolü.
 protocol Coordinator {
-    func start() -> AnyView // Coordinator'ı başlatır ve gösterilecek ilk View'ı döndürür
+    /// Coordinator'ı başlatır ve gösterilecek ilk View'ı döndürür.
+    func start() -> AnyView
 }
 
-// Onboarding akışını yöneten Coordinator
+/// Onboarding akışını yöneten Coordinator.
 class OnboardingCoordinator: Coordinator, ObservableObject {
-    // Coordinator'ın durumunu veya alt akışları yönetmek için Combine kullanılabilir
-    private var cancellables = Set<AnyCancellable>()
-
-    // Akışın tamamlandığını bildirmek için bir delegate veya closure kullanılabilir
+    
+    /// Onboarding akışı tamamlandığında üst katmanı (App) bilgilendirmek için kullanılır.
     var didFinishOnboarding: (() -> Void)?
 
-    // Onboarding sayfa verileri (Bunlar dışarıdan da gelebilir)
+    /// Onboarding sayfa verileri. Bu veriler bir API'den veya yerel bir JSON dosyasından da gelebilir.
     private let onboardingPagesData: [OnboardingPageData] = [
-        // Test için tüm görseller onboarding1 olarak ayarlandı
         OnboardingPageData(titleKey: "onboarding_page1_title", descriptionKey: "onboarding_page1_description", imageName: "onboarding1"),
-        OnboardingPageData(titleKey: "onboarding_page2_title", descriptionKey: "onboarding_page2_description", imageName: "onboarding1"), // Görsel değiştirildi
-        OnboardingPageData(titleKey: "onboarding_page3_title", descriptionKey: "onboarding_page3_description", imageName: "onboarding1") // Görsel değiştirildi
+        OnboardingPageData(titleKey: "onboarding_page2_title", descriptionKey: "onboarding_page2_description", imageName: "onboarding1"),
+        OnboardingPageData(titleKey: "onboarding_page3_title", descriptionKey: "onboarding_page3_description", imageName: "onboarding1")
     ]
 
     func start() -> AnyView {
-        // Container için ViewModel oluştur, sayfaları ve tamamlanma eylemini ilet
+        // Container için ViewModel oluşturulur, sayfalar ve tamamlanma eylemi iletilir.
         let containerViewModel = OnboardingContainerViewModel(
             pages: onboardingPagesData,
-            onComplete: { [weak self] in // Retain cycle önlemek için [weak self]
+            onComplete: { [weak self] in
                 self?.finishOnboarding()
             }
         )
         
-        // Container View'ı oluştur ve ViewModel'i inject et
+        // Container View'ı oluşturulur ve ViewModel enjekte edilir.
         let view = OnboardingContainerView(viewModel: containerViewModel)
         
         return AnyView(view)
     }
 
-    // Onboarding akışını bitirir
+    /// Onboarding akışını bitirir ve `didFinishOnboarding` closure'ını çağırır.
     private func finishOnboarding() {
-        // Üst katmanı (AppCoordinator?) bilgilendir
         didFinishOnboarding?()
     }
-} 
+}

@@ -1,170 +1,124 @@
 import Foundation
 import Combine
-import SwiftUI // LocalizedStringKey için
-import FirebaseAuth // Firebase Auth import edildi
+import SwiftUI
+import FirebaseAuth
 
 class EmailLoginViewModel: ObservableObject {
+    
+    // MARK: - Published Properties
     @Published var email = ""
     @Published var password = ""
-    @Published var isLoggingIn = false // Aktivite göstergesi için
-    @Published var errorMessage: String? // Genel hata mesajı (Firebase vb.)
+    @Published var isLoggingIn = false
     
-    // Alan bazlı validasyon ve hatalar
-    @Published var didAttemptLogin = false // Giriş denemesi yapıldı mı?
+    // Alan bazlı doğrulama
+    @Published var didAttemptLogin = false
     @Published var isEmailValid = true
+    @Published var emailErrorMessage: String?
     @Published var isPasswordValid = true
-    @Published var emailErrorMessage: String? // Lokalize anahtar veya metin
-    @Published var passwordErrorMessage: String? // Lokalize anahtar veya metin
-
-    // Hata durumunda odaklanılacak alan isteği (View bunu dinleyecek)
-    @Published var fieldToFocus: EmailLoginView.LoginField? = nil
+    @Published var passwordErrorMessage: String?
     
-    // Başarı closure'ı
+    // Hata durumunda odaklanılacak alan
+    @Published var fieldToFocus: EmailLoginView.LoginField?
+    
+    // MARK: - Closures for Coordinator
     private var onAuthenticationSuccess: (() -> Void)?
-    // Hata closure'ı (messageKey, alertType)
     private var onErrorOccurred: ((String, LoginViewModel.AlertType) -> Void)?
-
-    // ViewModel'i inject etmek ve başarı/hata closure'larını almak için init
-    init(onAuthenticationSuccess: (() -> Void)?,
-         onErrorOccurred: ((String, LoginViewModel.AlertType) -> Void)?) {
+    
+    init(
+        onAuthenticationSuccess: (() -> Void)?,
+        onErrorOccurred: ((String, LoginViewModel.AlertType) -> Void)?
+    ) {
         self.onAuthenticationSuccess = onAuthenticationSuccess
         self.onErrorOccurred = onErrorOccurred
     }
-
-    // Giriş fonksiyonu (şimdilik sadece validasyon)
+    
+    // MARK: - Public Methods
+    
     func login() {
         didAttemptLogin = true
-        errorMessage = nil // Önceki genel hatayı temizle
         
-        // Yerel validasyon (boşluk, format vs.)
         guard validateFields() else {
-            // Odaklanma eklendi
-            if !isEmailValid {
-                fieldToFocus = .email
-            } else if !isPasswordValid {
-                fieldToFocus = .password
-            }
-            print("Yerel validasyon başarısız.")
+            focusOnFirstInvalidField()
             return
         }
         
-        // Firebase isteğinden ÖNCE klavyeyi kapat
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-        
+        hideKeyboard()
         isLoggingIn = true
         
         Auth.auth().signIn(withEmail: email, password: password) { [weak self] authResult, error in
             guard let self = self else { return }
             
-            // Hata varsa işle
-            if let error = error {
-                self.handleAuthError(error)
-                return
-            }
-            
-            // Kullanıcı yoksa (beklenmedik durum)
-            guard let user = authResult?.user else {
-                 DispatchQueue.main.async {
-                    self.isLoggingIn = false
-                    self.errorMessage = "error_generic_login_failed"
-                 }
-                 return
-            }
-            
-            // Başarılı giriş
             DispatchQueue.main.async {
-                print("Firebase girişi başarılı: \(user.uid)")
                 self.isLoggingIn = false
-                // Klavyeyi kapat
-                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                // Küçük bir gecikmeyle ana akışı devam ettir (Bu kalabilir veya kaldırılabilir, Coordinator yönetirse daha iyi)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { 
-                    self.onAuthenticationSuccess?() // Yeni closure'ı çağır
+                
+                if let error = error {
+                    self.handleAuthError(error)
+                    return
                 }
+                
+                guard authResult?.user != nil else {
+                    self.onErrorOccurred?("error_generic_login_failed", .error)
+                    return
+                }
+                
+                self.onAuthenticationSuccess?()
             }
         }
     }
-
-    // Alanları valide et ve hata mesajlarını ayarla
-    @discardableResult // Dönüş değeri kullanılmayabilir
+    
+    // MARK: - Private Helper Methods
+    
     private func validateFields() -> Bool {
-        // E-posta validasyonu
-        if email.isEmpty {
-            isEmailValid = false
-            emailErrorMessage = "error_email_empty" // Lokalize anahtar
-        } else if !isValidEmail(email) { // Basit e-posta format kontrolü
-            isEmailValid = false
-            emailErrorMessage = "error_email_invalid"
-        } else {
-            isEmailValid = true
-            emailErrorMessage = nil
-        }
+        isEmailValid = !email.isEmpty && isValidEmailFormat(email)
+        emailErrorMessage = isEmailValid ? nil : (email.isEmpty ? "error_email_empty" : "error_email_invalid")
         
-        // Şifre validasyonu
-        if password.isEmpty {
-            isPasswordValid = false
-            passwordErrorMessage = "error_password_empty"
-        } else if password.count < 6 { // Signup ile aynı kural
-            isPasswordValid = false
-            passwordErrorMessage = "error_password_short"
-        } else {
-            isPasswordValid = true
-            passwordErrorMessage = nil
-        }
+        isPasswordValid = !password.isEmpty && password.count >= 6
+        passwordErrorMessage = isPasswordValid ? nil : (password.isEmpty ? "error_password_empty" : "error_password_short")
         
         return isEmailValid && isPasswordValid
     }
     
-    // Basit E-posta Format Kontrolü (Daha kapsamlı bir regex kullanılabilir)
-    private func isValidEmail(_ email: String) -> Bool {
-        let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
-        let emailPred = NSPredicate(format:"SELF MATCHES %@", emailRegEx)
-        return emailPred.evaluate(with: email)
-    }
-
-    // Firebase Hata İşleme
-    private func handleAuthError(_ error: Error) {
-        DispatchQueue.main.async {
-            self.isLoggingIn = false
-            // Hata kodunu almak için modern yöntem
-            guard let authError = error as? AuthErrorCode else {
-                // Firebase dışı veya cast edilemeyen hata
-                // self.errorMessage = "error_generic_login_failed" // Kaldırıldı
-                self.onErrorOccurred?("error_generic_login_failed", .error) // Yeni closure çağrısı
-                print("Bilinmeyen Auth Hatası: \\(error.localizedDescription)")
-                return
-            }
-            
-            // Artık authError.code enum'unu kullanabiliriz
-            var errorKey = "error_generic_login_failed" // Varsayılan hata anahtarı
-            switch authError.code {
-            case .wrongPassword:
-                // self.errorMessage = "error_wrong_password" // Kaldırıldı
-                errorKey = "error_wrong_password"
-                self.isPasswordValid = false
-                self.fieldToFocus = .password // Şifreye odaklan
-            case .invalidEmail:
-                // self.errorMessage = "error_email_invalid" // Kaldırıldı
-                errorKey = "error_email_invalid"
-                self.isEmailValid = false
-                self.fieldToFocus = .email // Email'e odaklan
-            case .userNotFound, .userDisabled:
-                // self.errorMessage = "error_user_not_found" // Kaldırıldı
-                errorKey = "error_user_not_found"
-                self.isEmailValid = false
-                self.fieldToFocus = .email // Email'e odaklan
-            case .networkError:
-                // self.errorMessage = "error_network_error" // Kaldırıldı
-                errorKey = "error_network_error"
-            default:
-                // self.errorMessage = "error_generic_login_failed" // Kaldırıldı
-                errorKey = "error_generic_login_failed"
-            }
-            // Hata closure'ını çağır
-            self.onErrorOccurred?(errorKey, .error)
-            print("Firebase Auth Hatası: \\(error.localizedDescription)")
+    private func focusOnFirstInvalidField() {
+        if !isEmailValid {
+            fieldToFocus = .email
+        } else if !isPasswordValid {
+            fieldToFocus = .password
         }
     }
-
-    // Coordinator veya diğer servislerle iletişim için Subject'ler veya delegate'ler eklenebilir
-} 
+    
+    private func isValidEmailFormat(_ email: String) -> Bool {
+        let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+        return NSPredicate(format:"SELF MATCHES %@", emailRegEx).evaluate(with: email)
+    }
+    
+    private func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+    
+    private func handleAuthError(_ error: Error) {
+        guard let authError = error as? AuthErrorCode else {
+            onErrorOccurred?("error_generic_login_failed", .error)
+            return
+        }
+        
+        var errorKey = "error_generic_login_failed"
+        switch authError.code {
+        case .wrongPassword:
+            errorKey = "error_wrong_password"
+            isPasswordValid = false
+            passwordErrorMessage = nil // Genel hata mesajı alert'te gösterilecek
+            fieldToFocus = .password
+        case .invalidEmail, .userNotFound, .userDisabled:
+            errorKey = "error_user_not_found" // Daha genel bir mesaj
+            isEmailValid = false
+            emailErrorMessage = nil
+            fieldToFocus = .email
+        case .networkError:
+            errorKey = "error_network_error"
+        default:
+            break
+        }
+        
+        onErrorOccurred?(errorKey, .error)
+    }
+}

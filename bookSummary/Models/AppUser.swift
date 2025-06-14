@@ -1,34 +1,31 @@
 import Foundation
-import FirebaseAuth // Firebase User bilgisini kullanmak için
+import FirebaseAuth
 
-// Uygulama içindeki kullanıcıyı temsil eden model.
-// Firebase User nesnesini veya Firestore verilerini temel alabilir.
-struct AppUser: Identifiable, Codable {
+/// Uygulama içindeki kullanıcıyı temsil eden model.
+/// Firebase User nesnesinden veya Firestore'dan gelen verilerle oluşturulabilir.
+struct AppUser: Identifiable, Codable, Hashable {
     let id: String      // Firebase UID
-    var name: String?     // Kullanıcının adı (Firebase profilden)
-    let email: String?    // Kullanıcının e-postası (Firebase profilden)
-    // TODO: Profil resmi URL'si, favori türler, okuma istatistikleri gibi
-    // Firestore'dan veya başka kaynaklardan gelecek ek alanlar buraya eklenebilir.
+    var name: String?
+    let email: String?
+    
+    // Gelecekte eklenebilecek alanlar:
     // var profileImageURL: URL?
     // var favoriteGenres: [String]?
-    
-    // Firebase User nesnesinden AppUser oluşturmak için kolaylaştırıcı initializer (isteğe bağlı)
+
+    /// Firebase User nesnesinden bir AppUser oluşturur.
     init?(firebaseUser: User) {
         self.id = firebaseUser.uid
         self.name = firebaseUser.displayName
         self.email = firebaseUser.email
-        // Diğer alanlar Firestore'dan vb. doldurulabilir
     }
     
-    // Test veya varsayılan durumlar için (isteğe bağlı)
+    /// Test veya manuel oluşturma için initializer.
     init(id: String, name: String?, email: String?) {
         self.id = id
         self.name = name
         self.email = email
     }
     
-    // Belki varsayılan boş bir kullanıcı?
-    static var empty: AppUser {
-        AppUser(id: "", name: nil, email: nil)
-    }
-} 
+    /// Boş bir kullanıcıyı temsil eden statik bir örnek.
+    static let empty = AppUser(id: "", name: nil, email: nil)
+}

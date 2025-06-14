@@ -16,12 +16,18 @@ struct FlexibleGridView<Data: Collection, Content: View>: View where Data.Elemen
                     availableWidth = size.width
                 }
 
-            _FlexibleGrid(availableWidth: availableWidth, data: data, spacing: spacing, alignment: alignment, content: content)
+            _FlexibleGrid(
+                availableWidth: availableWidth,
+                data: data,
+                spacing: spacing,
+                alignment: alignment,
+                content: content
+            )
         }
     }
 }
 
-struct _FlexibleGrid<Data: Collection, Content: View>: View where Data.Element: Hashable {
+fileprivate struct _FlexibleGrid<Data: Collection, Content: View>: View where Data.Element: Hashable {
     let availableWidth: CGFloat
     let data: Data
     let spacing: CGFloat
@@ -30,10 +36,14 @@ struct _FlexibleGrid<Data: Collection, Content: View>: View where Data.Element: 
     @State var elementsSize: [Data.Element: CGSize] = [:]
 
     var body: some View {
+        // HATA DÜZELTMESİ: ForEach'i direkt olarak [[Data.Element]] üzerinde kullanmak
+        // hashable sorununa yol açar. Bunun yerine satırların index'leri üzerinde
+        // döngü kurmak daha güvenli bir yöntemdir.
+        let computedRows = computeRows()
         VStack(alignment: alignment, spacing: spacing) {
-            ForEach(computeRows(), id: \.self) { rowElements in
+            ForEach(computedRows.indices, id: \.self) { rowIndex in
                 HStack(spacing: spacing) {
-                    ForEach(rowElements, id: \.self) { element in
+                    ForEach(computedRows[rowIndex], id: \.self) { element in
                         content(element)
                             .fixedSize()
                             .readSize { size in
@@ -45,10 +55,14 @@ struct _FlexibleGrid<Data: Collection, Content: View>: View where Data.Element: 
         }
     }
 
-    func computeRows() -> [[Data.Element]] {
+    private func computeRows() -> [[Data.Element]] {
         var rows: [[Data.Element]] = [[]]
         var currentRow = 0
         var remainingWidth = availableWidth
+
+        guard availableWidth > 0 else {
+            return []
+        }
 
         for element in data {
             let elementSize = elementsSize[element, default: CGSize(width: availableWidth, height: 1)]
@@ -62,23 +76,24 @@ struct _FlexibleGrid<Data: Collection, Content: View>: View where Data.Element: 
             }
             remainingWidth -= (elementSize.width + spacing)
         }
-        return rows
+        
+        return rows.filter { !$0.isEmpty }
     }
 }
 
 // View boyutunu okumak için yardımcı
-extension View {
+fileprivate extension View {
     func readSize(onChange: @escaping (CGSize) -> Void) -> some View {
         background(
-            GeometryReader {
-                Color.clear.preference(key: SizePreferenceKey.self, value: $0.size)
+            GeometryReader { geometry in
+                Color.clear.preference(key: SizePreferenceKey.self, value: geometry.size)
             }
         )
         .onPreferenceChange(SizePreferenceKey.self, perform: onChange)
     }
 }
 
-private struct SizePreferenceKey: PreferenceKey {
+fileprivate struct SizePreferenceKey: PreferenceKey {
     static var defaultValue: CGSize = .zero
     static func reduce(value: inout CGSize, nextValue: () -> CGSize) {}
-} 
+}

@@ -5,193 +5,163 @@ import SwiftUI
 
 class SignupViewModel: ObservableObject {
     
-    // Field enum'ı View'da olduğundan AnyHashable kullanalım
     typealias FocusableField = AnyHashable
     
-    // Input Alanları
+    // MARK: - Published Properties
     @Published var name = ""
     @Published var email = ""
     @Published var password = ""
     
-    // Doğrulama Durumları (Başlangıçta geçerli kabul ediliyor)
+    // Doğrulama Durumları
     @Published var isNameValid = true
-    @Published var nameErrorMessage: String? = nil
+    @Published var nameErrorMessage: String?
     @Published var isEmailValid = true
-    @Published var emailErrorMessage: String? = nil
+    @Published var emailErrorMessage: String?
     @Published var isPasswordValid = true
-    @Published var passwordErrorMessage: String? = nil
+    @Published var passwordErrorMessage: String?
     
-    // Kaydolma denemesi (sadece format/uzunluk kontrolü için)
-    @Published var didAttemptSignup = false 
-    
-    // Hata durumunda odaklanılacak alan isteği
-    @Published var fieldToFocus: FocusableField? = nil
-    
-    // Genel Hata ve Durum
-    @Published var genericErrorMessage: String? = nil
+    // Genel Durumlar
+    @Published var didAttemptSignup = false
+    @Published var genericErrorMessage: String?
     @Published var isLoading = false
+    @Published var fieldToFocus: FocusableField?
     
-    // Başarı closure'ı (Coordinator veya üst ViewModel tarafından sağlanacak)
+    // MARK: - Closures for Coordinator
     private var onAuthenticationSuccess: (() -> Void)?
     
-    // ViewModel'i inject etmek ve başarı closure'ını almak için init
     init(onAuthenticationSuccess: (() -> Void)?) {
         self.onAuthenticationSuccess = onAuthenticationSuccess
     }
     
-    // Formun format/uzunluk açısından geçerliliği
-    var isFormValid: Bool {
-        // Bu kontroller artık signUpWithEmail içinde yapılıyor,
-        // ama hızlı kontrol için kalabilir.
-        validateName(name)
-        validateEmail(email)
-        validatePassword(password)
-        return isNameValid && isEmailValid && isPasswordValid
-    }
+    // MARK: - Public Methods
     
-    // Doğrulama Fonksiyonları (Hata mesajları anahtar olarak ayarlanacak)
-    private func validateName(_ name: String) {
-        if name.isEmpty {
-            isNameValid = false
-            nameErrorMessage = didAttemptSignup ? "error_name_empty" : nil
-        } else {
-            isNameValid = true
-            nameErrorMessage = nil
-        }
-    }
-
-    private func validateEmail(_ email: String) {
-        let emailPredicate = NSPredicate(format:"SELF MATCHES %@", "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}")
-        if email.isEmpty {
-            isEmailValid = false
-            emailErrorMessage = didAttemptSignup ? "error_email_empty" : nil
-        } else if !emailPredicate.evaluate(with: email) {
-            isEmailValid = false
-            emailErrorMessage = didAttemptSignup ? "error_email_invalid" : nil
-        } else {
-            isEmailValid = true
-            emailErrorMessage = nil
-        }
-    }
-
-    private func validatePassword(_ password: String) {
-        if password.isEmpty {
-            isPasswordValid = false
-            passwordErrorMessage = didAttemptSignup ? "error_password_empty" : nil
-        } else if password.count < 6 {
-            isPasswordValid = false
-            passwordErrorMessage = didAttemptSignup ? "error_password_short" : nil
-        } else {
-            isPasswordValid = true
-            passwordErrorMessage = nil
-        }
-    }
-    
-    private func validateAllFields() {
-        validateName(name)
-        validateEmail(email)
-        validatePassword(password)
-    }
-
     func signUpWithEmail() {
-        didAttemptSignup = true 
-        validateAllFields()
+        didAttemptSignup = true
+        genericErrorMessage = nil
         
-        guard isNameValid && isEmailValid && isPasswordValid else {
-            // İlk geçersiz alana odaklan
-            if !isNameValid { fieldToFocus = SignupView.Field.name }
-            else if !isEmailValid { fieldToFocus = SignupView.Field.email }
-            else if !isPasswordValid { fieldToFocus = SignupView.Field.password }
-            return 
+        guard validateAllFields() else {
+            focusOnFirstInvalidField()
+            return
         }
         
-        // Firebase isteğinden ÖNCE klavyeyi kapat
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-        
+        hideKeyboard()
         isLoading = true
-        genericErrorMessage = nil
         
         Auth.auth().createUser(withEmail: email, password: password) { [weak self] authResult, error in
             guard let self = self else { return }
             
-            // Hata varsa işle
             if let error = error {
                 self.handleAuthError(error)
                 return
             }
             
-            // Kullanıcı yoksa (beklenmedik durum)
             guard let user = authResult?.user else {
-                 DispatchQueue.main.async {
+                DispatchQueue.main.async {
                     self.isLoading = false
                     self.genericErrorMessage = "error_generic_signup_failed"
-                 }
-                 return
+                }
+                return
             }
             
-            // Kullanıcı oluşturuldu, profilini güncelle
-            self.updateUserProfile(user: user)
+            self.updateUserProfile(for: user)
         }
     }
     
-    // Kullanıcı profilini güncelle (isim)
-    private func updateUserProfile(user: User) {
+    func resetFocusRequest() {
+        fieldToFocus = nil
+    }
+    
+    // MARK: - Private Helper Methods
+    
+    private func updateUserProfile(for user: User) {
         let changeRequest = user.createProfileChangeRequest()
         changeRequest.displayName = self.name
         changeRequest.commitChanges { [weak self] error in
             DispatchQueue.main.async {
                 self?.isLoading = false
                 if let error = error {
+                    // Profil güncelleme hatası genellikle kritik değildir, kullanıcı yine de giriş yapabilir.
+                    // Bu durumu loglayabilir veya kullanıcıya opsiyonel bir mesaj gösterebiliriz.
                     print("Profil güncelleme hatası: \(error.localizedDescription)")
                 }
-                print("Firebase kaydı ve profil güncelleme başarılı: \(user.uid)")
                 self?.onAuthenticationSuccess?()
             }
         }
     }
     
-    // Firebase Hata İşleme
     private func handleAuthError(_ error: Error) {
         DispatchQueue.main.async {
             self.isLoading = false
-            // Hata kodunu almak için modern yöntem
             guard let authError = error as? AuthErrorCode else {
-                // Firebase dışı veya cast edilemeyen hata
                 self.genericErrorMessage = "error_generic_auth_failed"
-                print("Bilinmeyen Auth Hatası: \(error.localizedDescription)")
                 return
             }
             
-            // Artık authError.code enum'unu kullanabiliriz
             switch authError.code {
             case .emailAlreadyInUse:
                 self.genericErrorMessage = "error_email_already_in_use"
-                self.isEmailValid = false // Email alanını geçersiz işaretle
-                self.fieldToFocus = SignupView.Field.email // Email alanına odaklan
+                self.isEmailValid = false
+                self.fieldToFocus = SignupView.Field.email
             case .invalidEmail:
                 self.genericErrorMessage = "error_email_invalid"
                 self.isEmailValid = false
                 self.fieldToFocus = SignupView.Field.email
             case .weakPassword:
                 self.genericErrorMessage = "error_weak_password"
-                self.isPasswordValid = false // Şifre alanını geçersiz işaretle
-                self.fieldToFocus = SignupView.Field.password // Şifre alanına odaklan
+                self.isPasswordValid = false
+                self.fieldToFocus = SignupView.Field.password
             case .networkError:
                 self.genericErrorMessage = "error_network_error"
             default:
                 self.genericErrorMessage = "error_generic_auth_failed"
             }
-            // Hata mesajını alan mesajına da yansıtabiliriz (opsiyonel)
-            // if !self.isEmailValid { self.emailErrorMessage = self.genericErrorMessage }
-            // if !self.isPasswordValid { self.passwordErrorMessage = self.genericErrorMessage }
-            print("Firebase Auth Hatası: \(error.localizedDescription)")
         }
     }
     
-    // Odaklanma isteğini sıfırla (Bu kalabilir)
-    func resetFocusRequest() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.fieldToFocus = nil
+    private func validateAllFields() -> Bool {
+        // İsim kontrolü
+        isNameValid = !name.trimmingCharacters(in: .whitespaces).isEmpty
+        nameErrorMessage = isNameValid ? nil : "error_name_empty"
+        
+        // E-posta kontrolü
+        if email.isEmpty {
+            isEmailValid = false
+            emailErrorMessage = "error_email_empty"
+        } else if !isValidEmailFormat(email) {
+            isEmailValid = false
+            emailErrorMessage = "error_email_invalid"
+        } else {
+            isEmailValid = true
+            emailErrorMessage = nil
         }
+        
+        // Şifre kontrolü
+        if password.isEmpty {
+            isPasswordValid = false
+            passwordErrorMessage = "error_password_empty"
+        } else if password.count < 6 {
+            isPasswordValid = false
+            passwordErrorMessage = "error_password_short"
+        } else {
+            isPasswordValid = true
+            passwordErrorMessage = nil
+        }
+        
+        return isNameValid && isEmailValid && isPasswordValid
     }
-} 
+    
+    private func focusOnFirstInvalidField() {
+        if !isNameValid { fieldToFocus = SignupView.Field.name }
+        else if !isEmailValid { fieldToFocus = SignupView.Field.email }
+        else if !isPasswordValid { fieldToFocus = SignupView.Field.password }
+    }
+    
+    private func isValidEmailFormat(_ email: String) -> Bool {
+        let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+        return NSPredicate(format:"SELF MATCHES %@", emailRegEx).evaluate(with: email)
+    }
+    
+    private func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+}

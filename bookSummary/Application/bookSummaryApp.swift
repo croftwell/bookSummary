@@ -1,103 +1,83 @@
-//
-//  bookSummaryApp.swift
-//  bookSummary
-//
-//  Created by Mehmet ali Çavuşlu on 29.04.2025.
-//
-
 import SwiftUI
-import FirebaseCore // Firebase'i başlatmak için import et
+import FirebaseCore
 
 @main
 struct bookSummaryApp: App {
-    // UserDefaults'tan durumu okumak ve UI'ı güncellemek için @AppStorage kullan
-    @AppStorage("hasCompletedOnboarding") var hasCompletedOnboarding: Bool = false
-    @AppStorage("hasSetHabits") var hasSetHabits: Bool = false // Yeni durum
+    
+    // Uygulama durumunu yöneten enum
+    private enum AppState {
+        case onboarding
+        case authentication
+        case habitSetup
+        case mainApp
+    }
+    
+    // UserDefaults'tan kullanıcı durumlarını okumak için @AppStorage
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
+    @AppStorage("hasSetHabits") private var hasSetHabits: Bool = false
+    
+    // Kimlik doğrulama durumu. Gerçek uygulamada bu bir AuthManager'dan gelebilir.
+    @State private var isAuthenticated: Bool = false
 
-    // Kimlik doğrulama durumunu takip et
-    @State private var isAuthenticated: Bool = false // Varsayılan: false
-
-    // --- TEST İÇİN DURUM EKLENDİ --- 
-    @State private var shouldShowLoginAfterOnboardingTest = false
-
-    // AppCoordinator'ı veya bu durumda basitçe OnboardingCoordinator'ı yönetmek için
+    // Coordinator'lar
     @StateObject private var onboardingCoordinator = OnboardingCoordinator()
     @StateObject private var loginCoordinator = LoginCoordinator()
-    @StateObject private var habitsCoordinator = HabitsCoordinator() // Yeni Coordinator
+    @StateObject private var habitsCoordinator = HabitsCoordinator()
 
-    // Firebase'i uygulamanın başlangıcında yapılandır
     init() {
         FirebaseApp.configure()
-        // TODO: Belki başlangıçta mevcut kullanıcıyı kontrol et?
-        // isAuthenticated = Auth.auth().currentUser != nil 
+        // Uygulama başlarken mevcut kullanıcı durumunu kontrol etmek daha doğru olacaktır.
+        // Bu, bir AuthManager servisi tarafından yönetilebilir.
+        // isAuthenticated = Auth.auth().currentUser != nil
+    }
+
+    // Mevcut duruma göre hangi Coordinator'ın başlatılacağını belirler
+    private var currentState: AppState {
+        if !hasCompletedOnboarding {
+            return .onboarding
+        } else if !isAuthenticated {
+            return .authentication
+        } else if !hasSetHabits {
+            return .habitSetup
+        } else {
+            return .mainApp
+        }
     }
 
     var body: some Scene {
         WindowGroup {
-            // Duruma göre hangi View/Coordinator'ın gösterileceğini belirle
-            
-            // --- TEST: Onboarding'i daima göster, bitince Login'e geç --- 
-            if shouldShowLoginAfterOnboardingTest {
-                // Onboarding testte bittikten sonra Login'i göster
-                loginCoordinator.start()
-                    .onAppear {
-                        // Login bittiğinde normal akışa dönülebilir
-                        loginCoordinator.didFinishAuth = {
-                            self.isAuthenticated = true
-                            // İsterseniz test için hasCompletedOnboarding'i de burada true yapabilirsiniz
-                            // self.hasCompletedOnboarding = true 
-                        }
+            rootView
+        }
+    }
+    
+    // Mevcut duruma göre uygun görünümü veya coordinator'ı döndüren ana görünüm
+    @ViewBuilder
+    private var rootView: some View {
+        switch currentState {
+        case .onboarding:
+            onboardingCoordinator.start()
+                .onAppear {
+                    onboardingCoordinator.didFinishOnboarding = {
+                        hasCompletedOnboarding = true
                     }
-            } else {
-                // Başlangıçta veya test login henüz tetiklenmediyse Onboarding'i göster
-                onboardingCoordinator.start()
-                    .onAppear {
-                        onboardingCoordinator.didFinishOnboarding = {
-                            // Onboarding bitince durumu güncellemeyi GEÇİCİ OLARAK DEVRE DIŞI BIRAK
-                            // self.hasCompletedOnboarding = true 
-                            // Bunun yerine test durumunu güncelle
-                            self.shouldShowLoginAfterOnboardingTest = true
-                            // print("TEST: Onboarding bitti, Login tetiklenecek.") // İsteğe bağlı test mesajı
-                        }
+                }
+        case .authentication:
+            loginCoordinator.start()
+                .onAppear {
+                    loginCoordinator.didFinishAuth = {
+                        isAuthenticated = true
                     }
-            }
-
-            /* --- ORİJİNAL MANTIK --- 
-            // --- ORİJİNAL MANTIK AKTİF --- 
-            if !hasCompletedOnboarding {
-                // 1. Onboarding Göster
-                onboardingCoordinator.start()
-                    .onAppear {
-                        onboardingCoordinator.didFinishOnboarding = {
-                            // Onboarding bitince durum güncelleniyor
-                            self.hasCompletedOnboarding = true 
-                        }
+                }
+        case .habitSetup:
+            habitsCoordinator.start()
+                .onAppear {
+                    habitsCoordinator.didFinishHabits = {
+                        hasSetHabits = true
                     }
-            } else if !isAuthenticated {
-                // 2. Login Göster
-                loginCoordinator.start()
-                    .onAppear {
-                        loginCoordinator.didFinishAuth = {
-                            // Başarılı giriş/kayıt sonrası sadece kimlik durumunu güncelle
-                            self.isAuthenticated = true
-                        }
-                    }
-            } else if !hasSetHabits {
-                // 3. Giriş yapıldı ama alışkanlıklar ayarlanmadı, Habits Göster
-                habitsCoordinator.start()
-                    .onAppear {
-                        habitsCoordinator.didFinishHabits = {
-                            // Alışkanlıklar ayarlandıktan sonra durumu güncelle
-                            self.hasSetHabits = true
-                        }
-                    }
-            } else {
-                // 4. Onboarding tamamlandı, giriş yapıldı VE alışkanlıklar ayarlandı -> Ana İçerik
-                // TODO: Burayı gerçek ana içerik View'ınızla değiştirin
-                Text("Ana İçerik Buraya Gelecek. (Giriş Yapıldı, Alışkanlıklar Ayarlandı)")
-            }
-             // --- ORİJİNAL MANTIK SONU --- 
-             --- ORİJİNAL MANTIK SONU --- */
+                }
+        case .mainApp:
+            // Onboarding, giriş ve alışkanlık ayarları tamamlandıysa ana içerik gösterilir.
+            ContentView()
         }
     }
 }

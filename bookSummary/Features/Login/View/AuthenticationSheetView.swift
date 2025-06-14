@@ -4,88 +4,100 @@ struct AuthenticationSheetView: View {
     
     @ObservedObject var loginViewModel: LoginViewModel
     
-    // View içinde oluşturulan ve inject edilen alt ViewModel'lar
     @StateObject private var signupViewModel: SignupViewModel
     @StateObject private var emailLoginViewModel: EmailLoginViewModel
     
-    // Init metodu ViewModel'ları loginViewModel ile başlatır
     init(loginViewModel: LoginViewModel) {
         self.loginViewModel = loginViewModel
+        
+        // Alt ViewModel'ları, üst ViewModel'in metodlarını çağıracak şekilde başlat.
         let onAuthSuccess = loginViewModel.requestCompleteAuthentication
         
         self._signupViewModel = StateObject(wrappedValue: SignupViewModel(
             onAuthenticationSuccess: onAuthSuccess
         ))
+        
         self._emailLoginViewModel = StateObject(wrappedValue: EmailLoginViewModel(
             onAuthenticationSuccess: onAuthSuccess,
-            onErrorOccurred: { messageKey, type in 
+            onErrorOccurred: { messageKey, type in
+                // HATA DÜZELTMESİ: Closure olarak atamak yerine,
+                // metodu doğrudan `loginViewModel` üzerinden çağırıyoruz.
+                // Bu, argüman etiketlerini ve varsayılan parametreleri korur.
                 loginViewModel.showAlert(messageKey: messageKey, type: type)
             }
         ))
     }
     
     var body: some View {
-        // Alert'i göstermek için ZStack eklendi
         ZStack(alignment: .top) {
-            // Mevcut içerik Group ile sarmalanıyor
-            Group { 
-                switch loginViewModel.currentSheetMode {
-                case .signup:
-                    // Inject edilen signupViewModel'i kullan
-                    SignupView(
-                        viewModel: signupViewModel, // Inject viewModel
-                        onLoginTapped: loginViewModel.switchToLoginMode,
-                        onCloseTapped: loginViewModel.dismissSheet
-                    )
-                case .emailLogin:
-                    // Inject edilen emailLoginViewModel'i kullan
-                    EmailLoginView(
-                        viewModel: emailLoginViewModel,
-                        onSignupTapped: loginViewModel.switchToSignupMode,
-                        onCloseTapped: loginViewModel.dismissSheet
-                    )
-                    .environmentObject(loginViewModel) // Şifremi unuttum butonu için
-                case .none: 
-                    EmptyView()
+            mainContent
+                .sheet(isPresented: $loginViewModel.isPresentingForgotPasswordSheet) {
+                    forgotPasswordSheet
                 }
-            }
-            // ForgotPassword sheet'i Group'a eklenmeli, ZStack'e değil.
-            // Ancak sheet yapısı ZStack ile tam uyumlu olmayabilir.
-            // Şimdilik Group'a ekleyelim. Gerekirse sonra düzeltiriz.
-            .sheet(isPresented: $loginViewModel.isPresentingForgotPasswordSheet) {
-                 // onCompletion closure'ı başarı durumunu alacak şekilde güncellendi
-                 let fpViewModel = ForgotPasswordViewModel(
-                     onCompletion: { success in 
-                         loginViewModel.dismissForgotPasswordSheet(success: success)
-                     }
-                 )
-                 ForgotPasswordView(
-                     viewModel: fpViewModel,
-                     onCloseTapped: { fpViewModel.dismiss() } 
-                 )
-             }
             
-            // --- Custom Alert Gösterimi (Buraya taşındı) ---
-            if loginViewModel.isShowingAlert, let messageKey = loginViewModel.alertMessage {
-                CustomAlertView(
-                    message: String(localized: .init(messageKey), table: "Auth"), 
-                    type: loginViewModel.alertType, 
-                    dismissAction: loginViewModel.dismissAlert
-                )
-                .transition(.move(edge: .top).combined(with: .opacity))
-                // .zIndex(1) // Gerekirse alert'in en üstte olmasını sağlamak için
+            alertOverlay
+        }
+    }
+    
+    /// Sheet'in ana içeriğini (Giriş veya Kaydol) gösterir.
+    @ViewBuilder
+    private var mainContent: some View {
+        switch loginViewModel.currentSheetMode {
+        case .signup:
+            SignupView(
+                viewModel: signupViewModel,
+                onLoginTapped: loginViewModel.switchToLoginMode,
+                onCloseTapped: loginViewModel.dismissSheet
+            )
+        case .emailLogin:
+            EmailLoginView(
+                viewModel: emailLoginViewModel,
+                onSignupTapped: loginViewModel.switchToSignupMode,
+                onCloseTapped: loginViewModel.dismissSheet
+            )
+            .environmentObject(loginViewModel) // Şifremi unuttum butonu için
+        case .none:
+            EmptyView()
+        }
+    }
+    
+    /// "Şifremi Unuttum" sheet'ini oluşturur.
+    private var forgotPasswordSheet: some View {
+        let fpViewModel = ForgotPasswordViewModel(
+            onCompletion: { success in
+                loginViewModel.dismissForgotPasswordSheet(success: success)
             }
+        )
+        return ForgotPasswordView(
+            viewModel: fpViewModel,
+            onCloseTapped: { fpViewModel.dismiss() }
+        )
+    }
+    
+    /// Özel alert bildirimini gösterir.
+    @ViewBuilder
+    private var alertOverlay: some View {
+        if loginViewModel.isShowingAlert, let messageKey = loginViewModel.alertMessage {
+            CustomAlertView(
+                message: String(localized: .init(messageKey), table: "Auth"),
+                type: loginViewModel.alertType,
+                dismissAction: loginViewModel.dismissAlert
+            )
+            .transition(.move(edge: .top).combined(with: .opacity))
+            .zIndex(1) // Diğer içeriklerin üzerinde olmasını sağlar.
         }
     }
 }
 
+
 #Preview {
     let previewViewModel = LoginViewModel()
-    // Preview'da alert'i test etmek için:
-    // previewViewModel.isShowingAlert = true
-    // previewViewModel.alertMessage = "forgot_password_success_message" 
-    // previewViewModel.alertType = .success
-    previewViewModel.currentSheetMode = .emailLogin
+    // previewViewModel.currentSheetMode = .emailLogin
+    previewViewModel.currentSheetMode = .signup
+    
+    // Alert'i test etmek için:
+    // previewViewModel.showAlert(messageKey: "forgot_password_success_message", type: .success)
+    
     return AuthenticationSheetView(loginViewModel: previewViewModel)
-        .environmentObject(previewViewModel) // EmailLoginView'ın ihtiyacı var
-} 
+        .environmentObject(previewViewModel)
+}

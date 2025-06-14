@@ -3,61 +3,54 @@ import Combine
 
 class OnboardingContainerViewModel: ObservableObject {
     
-    // Tüm onboarding sayfalarının verileri
-    // Bu veriler Coordinator'dan veya bir servisten enjekte edilebilir.
+    /// Tüm onboarding sayfalarının verileri.
     @Published var pages: [OnboardingPageData] = []
     
-    // Şu anda görüntülenen sayfanın indeksi (TabView ile bağlanacak)
+    /// Şu anda görüntülenen sayfanın indeksi.
     @Published var currentPageIndex: Int = 0
     
-    // Akışın tamamlandığını bildirmek için Coordinator'a iletilecek eylem
-    var onComplete: (() -> Void)?
+    /// Akışın tamamlandığını bildirmek için Coordinator'a iletilecek eylem.
+    private var onComplete: (() -> Void)?
     
-    // Haptic feedback için yardımcı
     private let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
     
-    // Buton için yerelleştirme anahtarını döndürür
+    /// Buton metni için dinamik olarak lokalizasyon anahtarını döndürür.
     var buttonTextKey: String {
-        if currentPageIndex == pages.count - 1 {
-            return "onboarding_start_button" // Son sayfa için anahtar
-        } else {
-            return "onboarding_continue_button" // Diğer sayfalar için anahtar
-        }
+        isLastPage ? "onboarding_start_button" : "onboarding_continue_button"
     }
     
-    // Başlatıcı (Initializer)
-    // Coordinator bu ViewModel'i oluştururken sayfaları ve tamamlanma eylemini iletecek.
+    /// Mevcut sayfanın son sayfa olup olmadığını kontrol eder.
+    private var isLastPage: Bool {
+        currentPageIndex == pages.count - 1
+    }
+    
     init(pages: [OnboardingPageData], onComplete: (() -> Void)?) {
         self.pages = pages
         self.onComplete = onComplete
-        hapticFeedback.prepare() // Haptic motorunu önceden hazırla
+        self.hapticFeedback.prepare()
     }
     
-    // "Devam Et" / "Başla" butonuna basıldığında çağrılır
+    /// "Devam Et" / "Başla" butonuna basıldığında çağrılır.
     func continueButtonTapped() {
-        triggerHapticFeedback() // Titreşim ver
+        triggerHapticFeedback()
         
-        if currentPageIndex < pages.count - 1 {
-            // Son sayfada değilsek, bir sonraki sayfaya git
-            // Animasyonla geçiş yapmak için withAnimation kullan
-            withAnimation {
-                currentPageIndex += 1
-            }
-        } else {
-            // Son sayfadaysak, onboarding'i tamamla
-            // İsteğe bağlı olarak burada da bir animasyon (örn. fade out) düşünülebilir
+        if isLastPage {
             completeOnboarding()
+        } else {
+            goToNextPage()
         }
     }
     
-    // Onboarding akışını tamamlar
-    private func completeOnboarding() {
-        onComplete?()
-    }
-    
-    // Sayfa değiştiğinde haptic geri bildirimi tetikler
-    // Bu, currentPageIndex'in değiştiği her yerde çağrılabilir.
+    /// Sayfa değiştiğinde haptic geri bildirimini tetikler.
     func triggerHapticFeedback() {
         hapticFeedback.impactOccurred()
     }
-} 
+    
+    private func goToNextPage() {
+        currentPageIndex += 1
+    }
+    
+    private func completeOnboarding() {
+        onComplete?()
+    }
+}
