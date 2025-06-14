@@ -9,7 +9,7 @@ struct OnboardingContainerView: View {
             pageViewer
             
             controlsOverlay
-                .padding(.bottom, 60) // Kontrolleri alttan yukarı konumlandır
+                .padding(.bottom, 60)
         }
         .background(Theme.lightGrayBackground)
         .ignoresSafeArea()
@@ -17,7 +17,10 @@ struct OnboardingContainerView: View {
     
     /// Sayfaları gösteren TabView.
     private var pageViewer: some View {
-        TabView(selection: $viewModel.currentPageIndex.animation()) {
+        // --- DEĞİŞİKLİK BURADA ---
+        // .animation() modifier'ını binding'den kaldırıyoruz.
+        // Animasyon artık ViewModel'de yönetiliyor.
+        TabView(selection: $viewModel.currentPageIndex) {
             ForEach(viewModel.pages) { pageData in
                 OnboardingPageView(
                     viewModel: OnboardingViewModel(pageData: pageData)
@@ -47,6 +50,8 @@ struct OnboardingContainerView: View {
                 Circle()
                     .fill(index == viewModel.currentPageIndex ? Theme.linkedinBlue : Color.gray.opacity(0.5))
                     .frame(width: 8, height: 8)
+                    // Animasyonu daha yumuşak hale getirmek için eklendi.
+                    .animation(.spring(), value: viewModel.currentPageIndex)
             }
         }
     }

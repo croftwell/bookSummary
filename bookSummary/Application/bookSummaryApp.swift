@@ -4,7 +4,6 @@ import FirebaseCore
 @main
 struct bookSummaryApp: App {
     
-    // Uygulama durumunu yöneten enum
     private enum AppState {
         case onboarding
         case authentication
@@ -12,27 +11,34 @@ struct bookSummaryApp: App {
         case mainApp
     }
     
-    // UserDefaults'tan kullanıcı durumlarını okumak için @AppStorage
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
     @AppStorage("hasSetHabits") private var hasSetHabits: Bool = false
     
-    // Kimlik doğrulama durumu. Gerçek uygulamada bu bir AuthManager'dan gelebilir.
     @State private var isAuthenticated: Bool = false
+    
+    // --- TEST İÇİN YENİ STATE ---
+    // Uygulamanın test modunda olup olmadığını belirler.
+    // `true` ise onboarding her zaman gösterilir.
+    @State private var isInTestMode: Bool = true
 
-    // Coordinator'lar
     @StateObject private var onboardingCoordinator = OnboardingCoordinator()
     @StateObject private var loginCoordinator = LoginCoordinator()
     @StateObject private var habitsCoordinator = HabitsCoordinator()
 
     init() {
         FirebaseApp.configure()
-        // Uygulama başlarken mevcut kullanıcı durumunu kontrol etmek daha doğru olacaktır.
-        // Bu, bir AuthManager servisi tarafından yönetilebilir.
         // isAuthenticated = Auth.auth().currentUser != nil
     }
 
-    // Mevcut duruma göre hangi Coordinator'ın başlatılacağını belirler
     private var currentState: AppState {
+        // --- DEĞİŞİKLİK BURADA ---
+        // Test modunu ve normal akışı kontrol eden mantık.
+        // Eğer test modundaysak ve onboarding bitmediyse, onboarding gösterilir.
+        if isInTestMode && !hasCompletedOnboarding {
+            return .onboarding
+        }
+        
+        // Normal akış mantığı
         if !hasCompletedOnboarding {
             return .onboarding
         } else if !isAuthenticated {
@@ -47,10 +53,10 @@ struct bookSummaryApp: App {
     var body: some Scene {
         WindowGroup {
             rootView
+                .onAppear(perform: setupForTesting)
         }
     }
     
-    // Mevcut duruma göre uygun görünümü veya coordinator'ı döndüren ana görünüm
     @ViewBuilder
     private var rootView: some View {
         switch currentState {
@@ -58,26 +64,36 @@ struct bookSummaryApp: App {
             onboardingCoordinator.start()
                 .onAppear {
                     onboardingCoordinator.didFinishOnboarding = {
-                        hasCompletedOnboarding = true
+                        // Onboarding bittiğinde durumunu kaydet.
+                        // Bu, `currentState`'in bir sonraki aşamaya geçmesini tetikleyecektir.
+                        self.hasCompletedOnboarding = true
                     }
                 }
         case .authentication:
             loginCoordinator.start()
                 .onAppear {
                     loginCoordinator.didFinishAuth = {
-                        isAuthenticated = true
+                        self.isAuthenticated = true
                     }
                 }
         case .habitSetup:
             habitsCoordinator.start()
                 .onAppear {
                     habitsCoordinator.didFinishHabits = {
-                        hasSetHabits = true
+                        self.hasSetHabits = true
                     }
                 }
         case .mainApp:
-            // Onboarding, giriş ve alışkanlık ayarları tamamlandıysa ana içerik gösterilir.
             ContentView()
+        }
+    }
+    
+    /// Sadece test amacıyla, uygulama her açıldığında onboarding durumunu sıfırlar.
+    private func setupForTesting() {
+        if isInTestMode {
+            // Test modunda, uygulama her başladığında onboarding'in
+            // tamamlanmadığını varsayarak durumu sıfırlıyoruz.
+            hasCompletedOnboarding = false
         }
     }
 }
